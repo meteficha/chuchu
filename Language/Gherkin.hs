@@ -4,8 +4,8 @@ module
   where
 
 -- base
-import Prelude hiding (readFile)
-import Control.Applicative hiding (many, (<|>))
+import Prelude hiding (readFile, unlines)
+import Control.Applicative hiding (many, (<|>), optional)
 import Control.Monad
 
 -- text
@@ -20,7 +20,10 @@ parseFile :: FilePath -> IO (Either ParseError Gherkin)
 parseFile path = parseGherkin <$> readFile path
 
 parseGherkin :: Text -> Either ParseError Gherkin
-parseGherkin s = parse gherkin "gherkin" s
+parseGherkin s =
+  do
+    stripped <- parse stripComments "stripComments" s
+    parse gherkin "gherkin" stripped
 
 data Gherkin =
   Gherkin
@@ -28,6 +31,16 @@ data Gherkin =
       gWhen :: [Text],
       gThen :: [Text]}
   deriving (Eq, Show)
+
+stripComments :: GenParser st Text
+stripComments
+  = unlines
+    <$> many
+      (try
+        $ do
+          bef <- many1 (noneOf "#")
+          optional $ char '#' >> void rol
+          return $ pack bef)
 
 gherkin :: GenParser st Gherkin
 gherkin
