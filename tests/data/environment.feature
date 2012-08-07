@@ -1,5 +1,5 @@
 Feature: Environment
-  In order to see if the environment variables are working
+  In order to use the enviroment variables
   Programmers must be able to write and read environment variables
 
   Scenario: Write then read
