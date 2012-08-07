@@ -49,7 +49,7 @@ step name
       spaces
       text <- rol
       rest <- many $ try $ spaces >> string "And" >> spaces >> rol
-      return $ text : rest
+      return $ strip text : rest
 
 rol :: GenParser st Text
 rol = pack <$> manyTill anyChar (void newline <|> eof)
