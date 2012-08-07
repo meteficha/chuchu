@@ -1,15 +1,15 @@
 module
   Language.Gherkin
-  (parseFile, parseGherkin, Gherkin (..))
+  (parseFile, parseGherkin, Gherkin, Step (..))
   where
 
 -- base
-import Prelude hiding (readFile, unlines, init)
+import Prelude hiding (readFile, unlines, last, init)
 import Control.Applicative hiding (many, (<|>), optional)
 import Control.Monad
 
 -- text
-import Data.Text
+import Data.Text hiding (map, concat)
 import Data.Text.IO
 
 -- parsec
@@ -25,12 +25,8 @@ parseGherkin s =
     stripped <- parse stripComments "stripComments" s
     parse gherkin "gherkin" stripped
 
-data Gherkin =
-  Gherkin
-    {gGiven :: [Text],
-      gWhen :: [Text],
-      gThen :: [Text]}
-  deriving (Eq, Show)
+type Gherkin = [(Step, Text)]
+data Step = Given | When | Then deriving (Eq, Show, Bounded, Enum)
 
 stripComments :: GenParser st Text
 stripComments
@@ -47,25 +43,23 @@ stripComments
 
 gherkin :: GenParser st Gherkin
 gherkin
- = do
-   void $ manyTill anyChar $ try $ newline >> newline
-   void rol
-   pGiven <- step "Given"
-   pWhen <- step "When"
-   pThen <- step "Then"
-   return $ Gherkin pGiven pWhen pThen
+  = manyTill anyChar (try $ newline >> newline)
+    >> rol
+    >> (concat <$> many steps)
 
-step :: String -> GenParser st [Text]
+steps :: GenParser st [(Step, Text)]
+steps = choice $ map step [minBound .. maxBound]
+
+step :: Step -> GenParser st [(Step, Text)]
 step name
-  = option []
-    $ try
+  = try
     $ do
       spaces
-      void $ string name
+      void $ string $ show name
       spaces
       text <- rol
       rest <- many $ try $ spaces >> string "And" >> spaces >> rol
-      return $ strip text : rest
+      return $ map ((,) name) $ strip text : rest
 
 rol :: GenParser st Text
 rol = pack <$> manyTill anyChar (void newline <|> eof)

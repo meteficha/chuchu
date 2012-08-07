@@ -24,10 +24,18 @@ main
 
 tests :: Test
 tests
-  = TestCase
-    $ Gherkin
-        []
-        [pack "I set the variable as 3 into the environment"]
-        [pack "the variable should have 3 on its content"]
-      @=? fromRight
-        (unsafePerformIO $ parseFile "tests/data/environment.feature")
+  = TestList
+    [TestCase
+        $ [(When, pack "I set the variable as 3 into the environment"),
+            (Then, pack "the variable should have 3 on its content")]
+          @=? fromRight
+           (unsafePerformIO $ parseFile "tests/data/environment.feature"),
+      TestCase
+        $ [(Given, pack "that A is logged in"),
+            (When, pack "he goes to his user page"),
+            (Then, pack "he sees his user name"),
+            (When, pack "he clicks \"Premium\""),
+            (Then, pack "he sees that he is a premium user")]
+          @=? fromRight
+            (unsafePerformIO
+              $ parseFile "tests/data/givenWhenGivenWhen.feature")]

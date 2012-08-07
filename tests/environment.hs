@@ -6,6 +6,7 @@ import Data.Maybe
 import System.Posix.Env
 
 -- chuchu
+import Language.Gherkin
 import Test.Chuchu
 
 -- HUnit
@@ -24,11 +25,10 @@ getNumber
     read <$> fromJust <$> getEnv "environment"
 
 defs :: Chuchu
-defs = Chuchu
-  []
-  [([CPT "I set the variable as ", Number, CPT " into the environment"],
-    \ [n] -> enterNumber n)]
-  [([CPT "the variable should have ", Number, CPT " on its content"],
+defs = [
+  (When, [CPT "I set the variable as ", Number, CPT " into the environment"],
+    \ [n] -> enterNumber n),
+  (Then, [CPT "the variable should have ", Number, CPT " on its content"],
     \ [n]
       -> do
         putStrLn "getting...1"
