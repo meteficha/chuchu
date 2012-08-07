@@ -1,10 +1,10 @@
 module
   Language.Gherkin
-  (parseFile, parseGherkin, Gherkin, Step (..))
+  (parseFile, parseGherkin, Gherkin (..), Scenario (..), Step (..))
   where
 
 -- base
-import Prelude hiding (readFile, unlines, last, init)
+import Prelude hiding (readFile, unlines, last, init, lines)
 import Control.Applicative hiding (many, (<|>), optional)
 import Control.Monad
 
@@ -25,8 +25,19 @@ parseGherkin s =
     stripped <- parse stripComments "stripComments" s
     parse gherkin "gherkin" stripped
 
-type Gherkin = [(Step, Text)]
-data Step = Given | When | Then deriving (Eq, Show, Bounded, Enum)
+data Gherkin
+  = Gherkin
+      {gTags :: [Text],
+        gName :: Text,
+        gDescription :: [Text],
+        gScenarios :: [Scenario]}
+    deriving (Eq, Show)
+
+data Scenario
+  = Scenario {sName :: Text, sSteps :: [(Step, Text)]}
+    deriving (Eq, Show)
+
+data Step = Given | When | Then deriving (Eq, Bounded, Enum, Show)
 
 stripComments :: GenParser st Text
 stripComments
@@ -43,15 +54,41 @@ stripComments
 
 gherkin :: GenParser st Gherkin
 gherkin
-  = manyTill anyChar (try $ newline >> newline)
-    >> rol
-    >> (concat <$> many steps)
+  = do
+    tags <- many $ try tag
+    void $ string "Feature: "
+    name <- rol
+    description <- manyTill anyChar (try $ newline >> newline)
+    scenarios <- many $ scenario
+    return
+      $ Gherkin
+        tags
+        (strip name)
+        (map strip $ lines $ pack description)
+        scenarios
 
-steps :: GenParser st [(Step, Text)]
-steps = choice $ map step [minBound .. maxBound]
+tag :: GenParser st Text
+tag
+  = do
+    void $ char '@'
+    str <- many $ letter <|> char '_'
+    void newline
+    return $ strip $ pack str
 
-step :: Step -> GenParser st [(Step, Text)]
-step name
+scenario :: GenParser st Scenario
+scenario
+  = do
+    spaces
+    void $ string "Scenario: "
+    name <- rol
+    steps <- many step
+    return $ Scenario (strip name) $ concat steps
+
+step :: GenParser st [(Step, Text)]
+step = choice $ map stepF [minBound .. maxBound]
+
+stepF :: Step -> GenParser st [(Step, Text)]
+stepF name
   = try
     $ do
       spaces

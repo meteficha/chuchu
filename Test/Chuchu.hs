@@ -1,7 +1,7 @@
 module Test.Chuchu where
 
 -- base
-import Prelude
+import Control.Applicative
 import Control.Monad
 import System.Exit
 import System.IO hiding (hPutStrLn)
@@ -27,9 +27,9 @@ chuchuMain chuchu f
     updateGlobalLogger rootLoggerName $ setLevel DEBUG
     parsed <- parseFile f
     case parsed of
-      (Right strs)
+      (Right (Gherkin _ _ _ scenarios))
         -> do
-          codes <- mapM (processStr chuchu) strs
+          codes <- mapM (processScenario chuchu) scenarios
           unless (and codes) exitFailure
       (Left e) -> error $ "Could not parse " ++ f ++ ": " ++ show e
 
@@ -37,8 +37,10 @@ type Chuchu = [(Step, [ChuchuParser], [Value] -> IO ())]
 data ChuchuParser = CPT String | Number deriving Show
 type Value = Int
 
-processStr
-  :: [(Step, [ChuchuParser], [Value] -> IO ())] -> (Step, Text) -> IO Bool
+processScenario :: Chuchu -> Scenario -> IO Bool
+processScenario chuchu (Scenario _ strs) = and <$> mapM (processStr chuchu) strs
+
+processStr :: Chuchu -> (Step, Text) -> IO Bool
 processStr chuchu str
   = do
     codes <- mapM (processStepRule str) chuchu
