@@ -46,7 +46,7 @@ gherkin :: GenParser st Gherkin
 gherkin
  = do
    void $ manyTill anyChar $ try $ newline >> newline
-   void $ rol
+   void rol
    pGiven <- step "Given"
    pWhen <- step "When"
    pThen <- step "Then"

@@ -89,7 +89,7 @@ processStepRule str (cParser, action)
         return True
 
 match :: [ChuchuParser] -> Text -> Either ParseError [Value]
-match p t = parse (pMatch p) "match" t
+match p = parse (pMatch p) "match"
 
 pMatch :: [ChuchuParser] -> GenParser st [Value]
 pMatch [] = return []
