@@ -32,7 +32,7 @@ chuchuMain (Chuchu gStep wStep tStep) f
         -> do
           codes
             <- mapM processStep [(gStep, gStrs), (wStep, wStrs), (tStep, tStrs)]
-          unless (or codes) exitFailure
+          unless (and codes) exitFailure
       (Left e) -> error $ "Could not parse " ++ f ++ ": " ++ show e
 
 data Chuchu
