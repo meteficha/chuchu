@@ -4,7 +4,7 @@ module
   where
 
 -- base
-import Prelude hiding (readFile, unlines)
+import Prelude hiding (readFile, unlines, init)
 import Control.Applicative hiding (many, (<|>), optional)
 import Control.Monad
 
@@ -34,13 +34,16 @@ data Gherkin =
 
 stripComments :: GenParser st Text
 stripComments
-  = unlines
+    -- Remove last \n
+  = init
+    <$> unlines
     <$> many
       (try
         $ do
           bef <- many1 (noneOf "#")
           optional $ char '#' >> void rol
-          return $ pack bef)
+          let tbef = pack bef
+          return $ if last tbef == '\n' then init tbef else tbef)
 
 gherkin :: GenParser st Gherkin
 gherkin
