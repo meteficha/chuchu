@@ -12,7 +12,7 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-module Test.Chuchu where
+module Test.Chuchu (chuchuMain, Chuchu, ChuchuParser (..), Value) where
 
 -- base
 import Control.Applicative
