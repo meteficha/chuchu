@@ -52,7 +52,7 @@ chuchuMain chuchu runMIO path
             chuchu
       (Left e) -> error $ "Could not parse " ++ path ++ ": " ++ show e
 
-type Chuchu m = [(StepKeyword, [ChuchuParser], [Value] -> m ())]
+type Chuchu m = [([ChuchuParser], [Value] -> m ())]
 data ChuchuParser = CPT String | Number deriving (Eq, Show)
 type Value = Int
 type CM m a = ReaderT (Chuchu m) m a
@@ -93,15 +93,11 @@ processStep step
             ++ " doesn't match any step definitions I know."
         return False
 
-tryMatchStep
-  :: MonadIO m
-    => Step -> (StepKeyword, [ChuchuParser], [Value] -> m ()) -> m Bool
-tryMatchStep step (chuchuStep, cParser, action)
-  | stStepKeyword step == chuchuStep
-    = case match cParser $ stBody step of
-      Left _ -> return False
-      Right parameters -> action parameters >> return True
-  | otherwise = return False
+tryMatchStep :: MonadIO m => Step -> ([ChuchuParser], [Value] -> m ()) -> m Bool
+tryMatchStep step (cParser, action)
+  = case match cParser $ stBody step of
+    Left _ -> return False
+    Right parameters -> action parameters >> return True
 
 match :: [ChuchuParser] -> Text -> Either ParseError [Value]
 match p = parse (pMatch p) "match"

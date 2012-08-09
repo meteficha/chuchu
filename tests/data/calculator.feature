@@ -8,6 +8,6 @@ Feature: Division
   Scenario: Regular numbers
     Given that I have entered 2 into the calculator
     # Comment! =)
-    Given that I have entered 3 into the calculator
+    And that I have entered 3 into the calculator
     When I press divide
     Then the result should be 1 on the screen

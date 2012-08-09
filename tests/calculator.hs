@@ -16,9 +16,6 @@
 import Control.Monad.IO.Class
 import Control.Monad.Trans.State
 
--- abacate
-import Language.Abacate
-
 -- chuchu
 import Test.Chuchu
 
@@ -43,12 +40,10 @@ divide = do
 
 defs :: Chuchu (CalculatorT IO)
 defs = [
-  (Given,
-    [CPT "that I have entered ", Number, CPT " into the calculator"],
+  ([CPT "that I have entered ", Number, CPT " into the calculator"],
     \ [n] -> enterNumber n),
-  (When, [CPT "I press divide"], const divide),
-  (Then,
-    [CPT "the result should be ", Number, CPT " on the screen"],
+  ([CPT "I press divide"], const divide),
+  ([CPT "the result should be ", Number, CPT " on the screen"],
     \ [n]
       -> do
         d <- getDisplay
