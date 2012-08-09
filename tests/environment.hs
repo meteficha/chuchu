@@ -15,6 +15,7 @@
 -- base
 import Control.Applicative
 import Data.Maybe
+import System.Environment hiding (getEnv)
 
 -- unix
 import System.Posix.Env
@@ -49,4 +50,4 @@ defs = [
         n @=? d)]
 
 main :: IO ()
-main = chuchuMain defs id "tests/data/environment.feature"
+main = withArgs ["tests/data/environment.feature"] $ chuchuMain defs id

@@ -12,6 +12,9 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
+-- base
+import System.Environment
+
 -- transformers
 import Control.Monad.IO.Class
 import Control.Monad.Trans.State
@@ -50,4 +53,6 @@ defs = [
         liftIO $ d @?= n)]
 
 main :: IO ()
-main = chuchuMain defs (flip evalStateT []) "tests/data/calculator.feature"
+main
+  = withArgs ["tests/data/calculator.feature"]
+    $ chuchuMain defs (flip evalStateT [])

@@ -15,7 +15,9 @@
 module Test.Chuchu (chuchuMain, Chuchu, ChuchuParser (..), Value) where
 
 -- base
+import Control.Applicative
 import Control.Monad
+import System.Environment
 import System.Exit
 import System.IO
 
@@ -31,24 +33,24 @@ import Control.Monad.Trans.Reader
 import Text.Parsec.Text
 import Text.Parsec
 
+-- cmdargs
+import System.Console.CmdArgs
+
 -- abacate
 import Language.Abacate
 
-chuchuMain :: MonadIO m => Chuchu m -> (m () -> IO ()) -> FilePath -> IO ()
-chuchuMain chuchu runMIO path
+chuchuMain :: MonadIO m => Chuchu m -> (m () -> IO ()) -> IO ()
+chuchuMain chuchu runMIO
   = do
+    path <- getPath
     parsed <- parseFile path
     case parsed of
-      (Right feature)
+      (Right abacate)
         -> runMIO
           $ runReaderT
             (do
-              bCode
-                <- case fBackground feature of
-                  Nothing -> return True
-                  Just background -> processBasicScenario background
-              feCode <- processFeatureElements $ fFeatureElements feature
-              unless (bCode && feCode) $ liftIO exitFailure)
+              code <- processAbacate abacate
+              unless code $ liftIO exitFailure)
             chuchu
       (Left e) -> error $ "Could not parse " ++ path ++ ": " ++ show e
 
@@ -56,6 +58,16 @@ type Chuchu m = [([ChuchuParser], [Value] -> m ())]
 data ChuchuParser = CPT String | Number deriving (Eq, Show)
 type Value = Int
 type CM m a = ReaderT (Chuchu m) m a
+
+processAbacate :: MonadIO m => Abacate -> CM m Bool
+processAbacate feature
+  = do
+    bCode
+      <- case fBackground feature of
+        Nothing -> return True
+        Just background -> processBasicScenario background
+    feCode <- processFeatureElements $ fFeatureElements feature
+    return $ bCode && feCode
 
 processFeatureElements :: MonadIO m => FeatureElements -> CM m Bool
 processFeatureElements featureElements
@@ -110,3 +122,18 @@ pMatch (Number : p)
     d <- many1 digit
     rest <- pMatch p
     return $ read d : rest
+
+data Options
+  = Options {file_ :: FilePath}
+    deriving (Eq, Show, Typeable, Data)
+
+getPath :: IO FilePath
+getPath
+  = do
+    progName <- getProgName
+    file_
+      <$> cmdArgs
+        (Options (def &= typ "PATH" &= argPos 0)
+          &= program progName
+          &= details
+            ["Run test scenarios specified on the abacate file at PATH."])
