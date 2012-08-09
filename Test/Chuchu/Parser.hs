@@ -4,7 +4,7 @@
 -- License     :  Apache 2.0 (see the file LICENSE)
 --
 -- Maintainer  :  Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
--- Stability   :  provisional
+-- Stability   :  unstable
 -- Portability :  portable
 module Test.Chuchu.Parser (chuchu, st, number, module Test.Chuchu.Types) where
 

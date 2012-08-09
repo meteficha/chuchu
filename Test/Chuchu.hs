@@ -4,8 +4,8 @@
 -- License     :  Apache 2.0 (see the file LICENSE)
 --
 -- Maintainer  :  Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
--- Stability   :  provisional
--- Portability :  portable
+-- Stability   :  unstable
+-- Portability :  non-portable (DeriveDataTypeable)
 module Test.Chuchu (chuchuMain, module Test.Chuchu.Parser) where
 
 -- base

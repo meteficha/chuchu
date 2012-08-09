@@ -5,7 +5,7 @@
 -- License     :  Apache 2.0 (see the file LICENSE)
 --
 -- Maintainer  :  Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
--- Stability   :  provisional
+-- Stability   :  unstable
 -- Portability :  portable
 --
 -- This is from the where clause of 'makeTokenParser' with types included.
