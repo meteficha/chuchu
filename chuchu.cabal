@@ -2,7 +2,22 @@ name: chuchu
 version: 0.0.1
 build-type: Simple
 cabal-version: >= 1.8
+license-file: LICENSE
+copyright: 2012 Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
+author: Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
+maintainer: Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
+stability: experimental
+homepage: http://github.com/marcotmarcot/chuchu
+bug-reports: http://github.com/marcotmarcot/chuchu/issues
+synopsis: Behaviour Driven Development for Haskell
+description:
+  Chuchu is a system similar to Ruby's Cucumber for Behaviour Driven
+  Development.  It works with a language similar to Cucumber's Gherkin, which is
+  parsed using package abacate.
+category: Test
 tested-with: GHC ==7.4.2
+extra-source-files:
+  tests/data/environment.feature
 
 library
   exposed-modules:
@@ -19,7 +34,6 @@ library
     -- 0.0.1
     abacate
   ghc-options: -Wall -O
-  ghc-prof-options: -rtsopts -fprof-auto -fprof-cafs
 
 Test-Suite environment
   type: exitcode-stdio-1.0
@@ -34,4 +48,3 @@ Test-Suite environment
    -- 1.2.5.1
    HUnit
   ghc-options: -Wall -O
-  ghc-prof-options: -rtsopts -fprof-auto -fprof-cafs
