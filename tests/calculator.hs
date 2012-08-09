@@ -52,7 +52,7 @@ defs
         lift $ enterNumber n,
       do
         st "I press divide"
-        lift $ divide,
+        lift,
       do
         st "the result should be "
         n <- number
@@ -65,4 +65,4 @@ defs
 main :: IO ()
 main
   = withArgs ["tests/data/calculator.feature"]
-    $ chuchuMain defs (flip evalStateT [])
+    $ chuchuMain defs (`evalStateT` [])

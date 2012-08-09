@@ -21,6 +21,7 @@ import Text.Parsec.Text ()
 -- chuchu
 import Test.Chuchu.Types
 
+{-# ANN module "HLint: ignore" #-}
 natFloat :: Monad m => ChuchuM m (Either Integer Double)
 natFloat        = do{ char '0'
                     ; zeroNumFloat
