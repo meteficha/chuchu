@@ -5,8 +5,10 @@ import Data.Maybe
 -- unix
 import System.Posix.Env
 
+-- abacate
+import Language.Abacate
+
 -- chuchu
-import Language.Gherkin
 import Test.Chuchu
 
 -- HUnit

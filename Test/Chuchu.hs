@@ -18,8 +18,8 @@ import System.Log.Logger
 import Text.Parsec.Text
 import Text.Parsec
 
--- chuchu
-import Language.Gherkin
+-- abacate
+import Language.Abacate
 
 chuchuMain :: Chuchu -> FilePath -> IO ()
 chuchuMain chuchu f
@@ -27,46 +27,63 @@ chuchuMain chuchu f
     updateGlobalLogger rootLoggerName $ setLevel DEBUG
     parsed <- parseFile f
     case parsed of
-      (Right (Gherkin _ _ _ scenarios))
+      (Right feature)
         -> do
-          codes <- mapM (processScenario chuchu) scenarios
-          unless (and codes) exitFailure
+          bCode
+            <- case fBackground feature of
+              Nothing -> return True
+              Just background -> processBasicScenario chuchu background
+          feCode <- processFeatureElements chuchu $ fFeatureElements feature
+          unless (bCode && feCode) exitFailure
       (Left e) -> error $ "Could not parse " ++ f ++ ": " ++ show e
 
-type Chuchu = [(Step, [ChuchuParser], [Value] -> IO ())]
+type Chuchu = [(StepKeyword, [ChuchuParser], [Value] -> IO ())]
 data ChuchuParser = CPT String | Number deriving Show
 type Value = Int
 
-processScenario :: Chuchu -> Scenario -> IO Bool
-processScenario chuchu (Scenario _ strs) = and <$> mapM (processStr chuchu) strs
+processFeatureElements :: Chuchu -> FeatureElements -> IO Bool
+processFeatureElements chuchu featureElements
+  = and <$> mapM (processFeatureElement chuchu) featureElements
 
-processStr :: Chuchu -> (Step, Text) -> IO Bool
-processStr chuchu str
+processFeatureElement :: Chuchu -> FeatureElement -> IO Bool
+processFeatureElement _ (FESO _)
+  = hPutStrLn stderr "Scenario Outlines are not supported yet." >> return False
+processFeatureElement chuchu (FES sc)
+  = processBasicScenario chuchu $ scBasicScenario sc
+
+processBasicScenario :: Chuchu -> BasicScenario -> IO Bool
+processBasicScenario chuchu = processSteps chuchu . bsSteps
+
+processSteps :: Chuchu -> Steps -> IO Bool
+processSteps chuchu steps = and <$> mapM (processStep chuchu) steps
+
+processStep :: Chuchu -> Step -> IO Bool
+processStep chuchu step
   = do
-    codes <- mapM (processStepRule str) chuchu
+    codes <- mapM (tryMatchStep step) chuchu
     if or codes
       then return True
       else do
         hPutStrLn stderr
           $ T.concat
             [pack "The step ",
-              pack $ show str,
+              pack $ show $ stBody step,
               pack
                 " doesn't match any step definitions I know."]
         return False
 
-processStepRule
-  :: (Step, Text) -> (Step, [ChuchuParser], [Value] -> IO ()) -> IO Bool
-processStepRule (strStep, str) (chuchuStep, cParser, action)
-  | strStep == chuchuStep
-    = case match cParser str of
+tryMatchStep
+  :: Step -> (StepKeyword, [ChuchuParser], [Value] -> IO ()) -> IO Bool
+tryMatchStep step (chuchuStep, cParser, action)
+  | stStepKeyword step == chuchuStep
+    = case match cParser $ stBody step of
       Left e
         -> do
           criticalM rootLoggerName
             $ "Could not match parser "
               ++ show cParser
               ++ " on string "
-              ++ show str
+              ++ show (stBody step)
               ++ ": "
               ++ show e
           return False
@@ -76,7 +93,7 @@ processStepRule (strStep, str) (chuchuStep, cParser, action)
             $ "Parser "
               ++ show cParser
               ++ " on string "
-              ++ show str
+              ++ show (stBody step)
               ++ " returned values "
               ++ show parameters
           action parameters

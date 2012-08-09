@@ -6,8 +6,7 @@ tested-with: GHC ==7.4.2
 
 library
   exposed-modules:
-    Test.Chuchu,
-    Language.Gherkin
+    Test.Chuchu
   build-depends:
     -- 4.5.1.0
     base,
@@ -16,7 +15,9 @@ library
     -- 1.2.0
     hslogger,
     -- 3.1.3
-    parsec
+    parsec,
+    -- 0.0.1
+    abacate
   ghc-options: -Wall -O
   ghc-prof-options: -rtsopts -fprof-auto -fprof-cafs
 
@@ -28,22 +29,9 @@ Test-Suite environment
    base,
    -- 2.5.1.1
    unix,
+   abacate,
    chuchu,
    -- 1.2.5.1
    HUnit
-  ghc-options: -Wall -O
-  ghc-prof-options: -rtsopts -fprof-auto -fprof-cafs
-
-Test-Suite gherkin
-  type: exitcode-stdio-1.0
-  main-is: gherkin.hs
-  hs-source-dirs: tests
-  build-depends:
-    base,
-    text,
-    -- 1.1.1.0
-    MissingH,
-    chuchu,
-    HUnit
   ghc-options: -Wall -O
   ghc-prof-options: -rtsopts -fprof-auto -fprof-cafs
