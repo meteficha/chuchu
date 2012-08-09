@@ -12,12 +12,9 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
--- base
-import Control.Applicative
-import Data.Maybe
-
--- unix
-import System.Posix.Env
+-- transformers
+import Control.Monad.IO.Class
+import Control.Monad.Trans.State
 
 -- abacate
 import Language.Abacate
@@ -28,28 +25,34 @@ import Test.Chuchu
 -- HUnit
 import Test.HUnit
 
-enterNumber :: Int -> IO ()
-enterNumber n
-  = do
-    putStrLn "setting..."
-    setEnv "environment" (show n) True
+type CalculatorT m = StateT [Int] m
 
-getNumber :: IO Int
-getNumber
-  = do
-    putStrLn "getting..."
-    read <$> fromJust <$> getEnv "environment"
+enterNumber :: Monad m => Int -> CalculatorT m ()
+enterNumber = modify . (:)
 
-defs :: Chuchu IO
+getDisplay :: Monad m => CalculatorT m Int
+getDisplay
+  = do
+    ns <- get
+    return $ head $ ns ++ [0]
+
+divide :: Monad m => CalculatorT m ()
+divide = do
+  (n1:n2:ns) <- get
+  put $ (n1 `div` n2) : ns
+
+defs :: Chuchu (CalculatorT IO)
 defs = [
-  (When, [CPT "I set the variable as ", Number, CPT " into the environment"],
+  (Given,
+    [CPT "that I have entered ", Number, CPT " into the calculator"],
     \ [n] -> enterNumber n),
-  (Then, [CPT "the variable should have ", Number, CPT " on its content"],
+  (When, [CPT "I press divide"], const divide),
+  (Then,
+    [CPT "the result should be ", Number, CPT " on the screen"],
     \ [n]
       -> do
-        putStrLn "getting...1"
-        d <- getNumber
-        n @=? d)]
+        d <- getDisplay
+        liftIO $ d @?= n)]
 
 main :: IO ()
-main = chuchuMain defs id "tests/data/environment.feature"
+main = chuchuMain defs (flip evalStateT []) "tests/data/calculator.feature"

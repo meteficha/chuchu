@@ -15,13 +15,17 @@
 module Test.Chuchu (chuchuMain, Chuchu, ChuchuParser (..), Value) where
 
 -- base
-import Control.Applicative
 import Control.Monad
 import System.Exit
 import System.IO
 
 -- text
 import Data.Text hiding (concat)
+
+-- transformers
+import Control.Monad.IO.Class
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Reader
 
 -- parsec
 import Text.Parsec.Text
@@ -30,56 +34,68 @@ import Text.Parsec
 -- abacate
 import Language.Abacate
 
-chuchuMain :: Chuchu -> FilePath -> IO ()
-chuchuMain chuchu f
+chuchuMain :: MonadIO m => Chuchu m -> (m () -> IO ()) -> FilePath -> IO ()
+chuchuMain chuchu runMIO path
   = do
-    parsed <- parseFile f
+    parsed <- parseFile path
     case parsed of
       (Right feature)
-        -> do
-          bCode
-            <- case fBackground feature of
-              Nothing -> return True
-              Just background -> processBasicScenario chuchu background
-          feCode <- processFeatureElements chuchu $ fFeatureElements feature
-          unless (bCode && feCode) exitFailure
-      (Left e) -> error $ "Could not parse " ++ f ++ ": " ++ show e
+        -> runMIO
+          $ runReaderT
+            (do
+              bCode
+                <- case fBackground feature of
+                  Nothing -> return True
+                  Just background -> processBasicScenario background
+              feCode <- processFeatureElements $ fFeatureElements feature
+              unless (bCode && feCode) $ liftIO exitFailure)
+            chuchu
+      (Left e) -> error $ "Could not parse " ++ path ++ ": " ++ show e
 
-type Chuchu = [(StepKeyword, [ChuchuParser], [Value] -> IO ())]
-data ChuchuParser = CPT String | Number deriving Show
+type Chuchu m = [(StepKeyword, [ChuchuParser], [Value] -> m ())]
+data ChuchuParser = CPT String | Number deriving (Eq, Show)
 type Value = Int
+type CM m a = ReaderT (Chuchu m) m a
 
-processFeatureElements :: Chuchu -> FeatureElements -> IO Bool
-processFeatureElements chuchu featureElements
-  = and <$> mapM (processFeatureElement chuchu) featureElements
-
-processFeatureElement :: Chuchu -> FeatureElement -> IO Bool
-processFeatureElement _ (FESO _)
-  = hPutStrLn stderr "Scenario Outlines are not supported yet." >> return False
-processFeatureElement chuchu (FES sc)
-  = processBasicScenario chuchu $ scBasicScenario sc
-
-processBasicScenario :: Chuchu -> BasicScenario -> IO Bool
-processBasicScenario chuchu = processSteps chuchu . bsSteps
-
-processSteps :: Chuchu -> Steps -> IO Bool
-processSteps chuchu steps = and <$> mapM (processStep chuchu) steps
-
-processStep :: Chuchu -> Step -> IO Bool
-processStep chuchu step
+processFeatureElements :: MonadIO m => FeatureElements -> CM m Bool
+processFeatureElements featureElements
   = do
-    codes <- mapM (tryMatchStep step) chuchu
+    codes <- mapM processFeatureElement featureElements
+    return $ and codes
+
+processFeatureElement :: MonadIO m => FeatureElement -> CM m Bool
+processFeatureElement (FESO _)
+  = liftIO (hPutStrLn stderr "Scenario Outlines are not supported yet.")
+    >> return False
+processFeatureElement (FES sc) = processBasicScenario $ scBasicScenario sc
+
+processBasicScenario :: MonadIO m => BasicScenario -> CM m Bool
+processBasicScenario = processSteps . bsSteps
+
+processSteps :: MonadIO m => Steps -> CM m Bool
+processSteps steps
+  = do
+    codes <- mapM processStep steps
+    return $ and codes
+
+processStep :: MonadIO m => Step -> CM m Bool
+processStep step
+  = do
+    chuchu <- ask
+    codes <- lift $ mapM (tryMatchStep step) chuchu
     if or codes
       then return True
       else do
-        hPutStrLn stderr
+        liftIO
+          $ hPutStrLn stderr
           $ "The step "
             ++ show (stBody step)
             ++ " doesn't match any step definitions I know."
         return False
 
 tryMatchStep
-  :: Step -> (StepKeyword, [ChuchuParser], [Value] -> IO ()) -> IO Bool
+  :: MonadIO m
+    => Step -> (StepKeyword, [ChuchuParser], [Value] -> m ()) -> m Bool
 tryMatchStep step (chuchuStep, cParser, action)
   | stStepKeyword step == chuchuStep
     = case match cParser $ stBody step of
