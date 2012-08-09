@@ -18,12 +18,10 @@ module Test.Chuchu where
 import Control.Applicative
 import Control.Monad
 import System.Exit
-import System.IO hiding (hPutStrLn)
+import System.IO
 
 -- text
 import Data.Text hiding (concat)
-import qualified Data.Text as T
-import Data.Text.IO
 
 -- hslogger
 import System.Log.Logger
@@ -79,11 +77,9 @@ processStep chuchu step
       then return True
       else do
         hPutStrLn stderr
-          $ T.concat
-            [pack "The step ",
-              pack $ show $ stBody step,
-              pack
-                " doesn't match any step definitions I know."]
+          $ "The step "
+            ++ show (stBody step)
+            ++ " doesn't match any step definitions I know."
         return False
 
 tryMatchStep
