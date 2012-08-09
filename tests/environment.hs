@@ -42,9 +42,11 @@ getNumber
 
 defs :: Chuchu IO
 defs = [
-  (When, [CPT "I set the variable as ", Number, CPT " into the environment"],
+  (When,
+    [CPT "I set the variable as ", Number, CPT " into the environment"],
     \ [n] -> enterNumber n),
-  (Then, [CPT "the variable should have ", Number, CPT " on its content"],
+  (Then,
+    [CPT "the variable should have ", Number, CPT " on its content"],
     \ [n]
       -> do
         putStrLn "getting...1"
