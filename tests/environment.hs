@@ -20,34 +20,44 @@ import System.Environment hiding (getEnv)
 -- unix
 import System.Posix.Env
 
+-- transformers
+import Control.Monad.Trans.Class
+
 -- chuchu
 import Test.Chuchu
 
 -- HUnit
 import Test.HUnit
 
-enterNumber :: Int -> IO ()
+enterNumber :: Double -> IO ()
 enterNumber n
   = do
     putStrLn "setting..."
     setEnv "environment" (show n) True
 
-getNumber :: IO Int
+getNumber :: IO Double
 getNumber
   = do
     putStrLn "getting..."
     read <$> fromJust <$> getEnv "environment"
 
 defs :: Chuchu IO
-defs = [
-  ([CPT "I set the variable as ", Number, CPT " into the environment"],
-    \ [n] -> enterNumber n),
-  ([CPT "the variable should have ", Number, CPT " on its content"],
-    \ [n]
-      -> do
-        putStrLn "getting...1"
-        d <- getNumber
-        n @=? d)]
+defs
+  = chuchu
+    [do
+        st "I set the variable as "
+        n <- number
+        st " into the environment"
+        lift $ enterNumber n,
+      do
+        st "the variable should have "
+        n <- number
+        st " on its content"
+        lift
+          $ do
+            putStrLn "getting...1"
+            d <- getNumber
+            n @=? d]
 
 main :: IO ()
 main = withArgs ["tests/data/environment.feature"] $ chuchuMain defs id

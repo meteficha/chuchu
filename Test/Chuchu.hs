@@ -12,7 +12,7 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-module Test.Chuchu (chuchuMain, Chuchu, ChuchuParser (..), Value) where
+module Test.Chuchu (chuchuMain, module Test.Chuchu.Parser) where
 
 -- base
 import Control.Applicative
@@ -21,17 +21,14 @@ import System.Environment
 import System.Exit
 import System.IO
 
--- text
-import Data.Text hiding (concat)
-
 -- transformers
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.Reader
 
 -- parsec
-import Text.Parsec.Text
 import Text.Parsec
+import Text.Parsec.Text ()
 
 -- cmdargs
 import System.Console.CmdArgs
@@ -39,8 +36,11 @@ import System.Console.CmdArgs
 -- abacate
 import Language.Abacate
 
+-- chuchu
+import Test.Chuchu.Parser
+
 chuchuMain :: MonadIO m => Chuchu m -> (m () -> IO ()) -> IO ()
-chuchuMain chuchu runMIO
+chuchuMain cc runMIO
   = do
     path <- getPath
     parsed <- parseFile path
@@ -51,12 +51,9 @@ chuchuMain chuchu runMIO
             (do
               code <- processAbacate abacate
               unless code $ liftIO exitFailure)
-            chuchu
+            cc
       (Left e) -> error $ "Could not parse " ++ path ++ ": " ++ show e
 
-type Chuchu m = [([ChuchuParser], [Value] -> m ())]
-data ChuchuParser = CPT String | Number deriving (Eq, Show)
-type Value = Int
 type CM m a = ReaderT (Chuchu m) m a
 
 processAbacate :: MonadIO m => Abacate -> CM m Bool
@@ -93,35 +90,19 @@ processSteps steps
 processStep :: MonadIO m => Step -> CM m Bool
 processStep step
   = do
-    chuchu <- ask
-    codes <- lift $ mapM (tryMatchStep step) chuchu
-    if or codes
-      then return True
-      else do
-        liftIO
-          $ hPutStrLn stderr
-          $ "The step "
-            ++ show (stBody step)
-            ++ " doesn't match any step definitions I know."
-        return False
-
-tryMatchStep :: MonadIO m => Step -> ([ChuchuParser], [Value] -> m ()) -> m Bool
-tryMatchStep step (cParser, action)
-  = case match cParser $ stBody step of
-    Left _ -> return False
-    Right parameters -> action parameters >> return True
-
-match :: [ChuchuParser] -> Text -> Either ParseError [Value]
-match p = parse (pMatch p) "match"
-
-pMatch :: [ChuchuParser] -> GenParser st [Value]
-pMatch [] = return []
-pMatch (CPT s : p) = string s >> pMatch p
-pMatch (Number : p)
-  = do
-    d <- many1 digit
-    rest <- pMatch p
-    return $ read d : rest
+    cc <- ask
+    result <- lift $ runPT cc () "processStep" $ stBody step
+    case result of
+      Left e
+        -> do
+          liftIO
+            $ hPutStrLn stderr
+            $ "The step "
+              ++ show (stBody step)
+              ++ " doesn't match any step definitions I know."
+              ++ show e
+          return False
+      Right () -> return True
 
 data Options
   = Options {file_ :: FilePath}

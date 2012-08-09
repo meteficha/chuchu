@@ -16,6 +16,7 @@
 import System.Environment
 
 -- transformers
+import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
 import Control.Monad.Trans.State
 
@@ -25,12 +26,12 @@ import Test.Chuchu
 -- HUnit
 import Test.HUnit
 
-type CalculatorT m = StateT [Int] m
+type CalculatorT m = StateT [Double] m
 
-enterNumber :: Monad m => Int -> CalculatorT m ()
+enterNumber :: Monad m => Double -> CalculatorT m ()
 enterNumber = modify . (:)
 
-getDisplay :: Monad m => CalculatorT m Int
+getDisplay :: Monad m => CalculatorT m Double
 getDisplay
   = do
     ns <- get
@@ -39,18 +40,27 @@ getDisplay
 divide :: Monad m => CalculatorT m ()
 divide = do
   (n1:n2:ns) <- get
-  put $ (n1 `div` n2) : ns
+  put $ (n1 / n2) : ns
 
 defs :: Chuchu (CalculatorT IO)
-defs = [
-  ([CPT "that I have entered ", Number, CPT " into the calculator"],
-    \ [n] -> enterNumber n),
-  ([CPT "I press divide"], const divide),
-  ([CPT "the result should be ", Number, CPT " on the screen"],
-    \ [n]
-      -> do
-        d <- getDisplay
-        liftIO $ d @?= n)]
+defs
+  = chuchu
+    [do
+        st "that I have entered "
+        n <- number
+        st " into the calculator"
+        lift $ enterNumber n,
+      do
+        st "I press divide"
+        lift $ divide,
+      do
+        st "the result should be "
+        n <- number
+        st " on the screen"
+        lift
+          $ do
+            d <- getDisplay
+            liftIO $ d @?= n]
 
 main :: IO ()
 main
