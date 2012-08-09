@@ -52,7 +52,7 @@ defs
         lift $ enterNumber n,
       do
         st "I press divide"
-        lift,
+        lift divide,
       do
         st "the result should be "
         n <- number
