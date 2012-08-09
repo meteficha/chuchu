@@ -23,9 +23,6 @@ import System.IO
 -- text
 import Data.Text hiding (concat)
 
--- hslogger
-import System.Log.Logger
-
 -- parsec
 import Text.Parsec.Text
 import Text.Parsec
@@ -36,7 +33,6 @@ import Language.Abacate
 chuchuMain :: Chuchu -> FilePath -> IO ()
 chuchuMain chuchu f
   = do
-    updateGlobalLogger rootLoggerName $ setLevel DEBUG
     parsed <- parseFile f
     case parsed of
       (Right feature)
@@ -87,27 +83,8 @@ tryMatchStep
 tryMatchStep step (chuchuStep, cParser, action)
   | stStepKeyword step == chuchuStep
     = case match cParser $ stBody step of
-      Left e
-        -> do
-          criticalM rootLoggerName
-            $ "Could not match parser "
-              ++ show cParser
-              ++ " on string "
-              ++ show (stBody step)
-              ++ ": "
-              ++ show e
-          return False
-      Right parameters
-        -> do
-          criticalM rootLoggerName
-            $ "Parser "
-              ++ show cParser
-              ++ " on string "
-              ++ show (stBody step)
-              ++ " returned values "
-              ++ show parameters
-          action parameters
-          return True
+      Left _ -> return False
+      Right parameters -> action parameters >> return True
   | otherwise = return False
 
 match :: [ChuchuParser] -> Text -> Either ParseError [Value]
