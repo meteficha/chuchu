@@ -13,6 +13,7 @@
 -- limitations under the License.
 
 -- base
+import Control.Applicative
 import System.Environment
 
 -- transformers
@@ -44,22 +45,17 @@ divide = do
 defs :: Chuchu (CalculatorT IO)
 defs
   = chuchu
-    [do
-        st "that I have entered "
-        n <- number
-        st " into the calculator"
-        return $ enterNumber n,
-      do
-        st "I press divide"
-        return divide,
-      do
-        st "the result should be "
-        n <- number
-        st " on the screen"
-        return
-          $ do
-            d <- getDisplay
-            liftIO $ d @?= n]
+    [enterNumber
+        <$ st "that I have entered "
+        <*> number
+        <* st " into the calculator",
+      divide <$ st "I press divide",
+      let
+          act n
+            = do
+              d <- getDisplay
+              liftIO $ d @?= n
+        in act <$ st "the result should be " <*> number <* st " on the screen"]
 
 main :: IO ()
 main

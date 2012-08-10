@@ -41,20 +41,20 @@ getNumber
 defs :: Chuchu IO
 defs
   = chuchu
-    [do
-        st "I set the variable as "
-        n <- number
-        st " into the environment"
-        return $ enterNumber n,
-      do
-        st "the variable should have "
-        n <- number
-        st " on its content"
-        return
-          $ do
-            putStrLn "getting...1"
-            d <- getNumber
-            n @=? d]
+    [enterNumber
+        <$ st "I set the variable as "
+        <*> number
+        <* st " into the environment",
+      let
+          act n
+            = do
+              putStrLn "getting...1"
+              d <- getNumber
+              n @=? d
+         in act
+           <$ st "the variable should have "
+           <*> number
+           <* st " on its content"]
 
 main :: IO ()
 main = withArgs ["tests/data/environment.feature"] $ chuchuMain defs id
