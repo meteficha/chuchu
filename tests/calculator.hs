@@ -42,17 +42,18 @@ divide = do
   (n1:n2:ns) <- get
   put $ (n1 / n2) : ns
 
-defs :: [Chuchu (CalculatorT IO)]
+defs :: Chuchu (CalculatorT IO)
 defs
-  = [Given
+  = do
+    Given
       ("that I have entered " *> number <* " into the calculator")
-      enterNumber,
-    When "I press divide" $ const divide,
+      enterNumber
+    When "I press divide" $ const divide
     Then ("the result should be " *> number <* " on the screen")
       $ \n
         -> do
           d <- getDisplay
-          liftIO $ d @?= n]
+          liftIO $ d @?= n
 
 main :: IO ()
 main

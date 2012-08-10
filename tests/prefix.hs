@@ -28,12 +28,13 @@ import Test.HUnit
 
 type CalculatorT m = StateT Integer m
 
-defs :: [Chuchu (CalculatorT IO)]
+defs :: Chuchu (CalculatorT IO)
 defs
-  = [When ("I add " *> int) $ \x -> modify (+ x),
+  = do
+    When ("I add " *> int) $ \x -> modify (+ x)
     When ((,) <$ "I add " <*> int <* " " <*> int <* " times")
-      $ \(n, x) -> modify (+ n * x),
-    When ("the result should be " *> int) $ \x -> get >>= liftIO . (@?= x)]
+      $ \(n, x) -> modify (+ n * x)
+    When ("the result should be " *> int) $ \x -> get >>= liftIO . (@?= x)
 
 main :: IO ()
 main
