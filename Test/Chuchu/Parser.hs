@@ -20,7 +20,7 @@ import Test.Chuchu.Types
 import Test.Chuchu.Parsec
 
 chuchu :: Monad m => [Chuchu m] -> Chuchu m
-chuchu = choice . map try
+chuchu = choice . map (try . (<* eof))
 
 st :: String -> ChuchuM ()
 st = void . string
