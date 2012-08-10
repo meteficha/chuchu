@@ -10,7 +10,7 @@
 --
 -- This is from the where clause of 'makeTokenParser' with types included and
 -- calls to 'lexeme' removed in the functions where this is noted.
-module Test.Chuchu.Parsec (natFloat, int) where
+module Test.Chuchu.Parsec (stringLiteral, natFloat, int) where
 
 -- base
 import Data.Char
@@ -20,6 +20,85 @@ import Text.Parsec
 import Text.Parsec.Text
 
 {-# ANN module "HLint: ignore" #-}
+-- | 'lexeme' removed.
+stringLiteral :: Parser String
+stringLiteral   = do{ str <- between (char '"')
+                                     (char '"' <?> "end of string")
+                                     (many stringChar)
+                    ; return (foldr (maybe id (:)) "" str)
+                    }
+                  <?> "literal string"
+
+stringChar :: Parser (Maybe Char)
+stringChar      =   do{ c <- stringLetter; return (Just c) }
+                <|> stringEscape
+                <?> "string character"
+
+
+stringLetter :: Parser Char
+stringLetter    = satisfy (\c -> (c /= '"') && (c /= '\\') && (c > '\026'))
+
+stringEscape :: Parser (Maybe Char)
+stringEscape    = do{ char '\\'
+                    ;     do{ escapeGap  ; return Nothing }
+                      <|> do{ escapeEmpty; return Nothing }
+                      <|> do{ esc <- escapeCode; return (Just esc) }
+                    }
+
+escapeEmpty :: Parser Char
+escapeEmpty     = char '&'
+
+
+escapeGap :: Parser Char
+escapeGap       = do{ many1 space
+                    ; char '\\' <?> "end of string gap"
+                    }
+
+escapeCode :: Parser Char
+escapeCode      = charEsc <|> charNum <|> charAscii <|> charControl
+                <?> "escape code"
+
+charControl :: Parser Char
+charControl     = do{ char '^'
+                    ; code <- upper
+                    ; return (toEnum (fromEnum code - fromEnum 'A'))
+                    }
+
+charNum :: Parser Char
+charNum         = do{ code <- decimal
+                              <|> do{ char 'o'; number 8 octDigit }
+                              <|> do{ char 'x'; number 16 hexDigit }
+                    ; return (toEnum (fromInteger code))
+                    }
+
+charEsc :: Parser Char
+charEsc         = choice (map parseEsc escMap)
+                where
+                  parseEsc (c,code)     = do{ char c; return code }
+
+charAscii :: Parser Char
+charAscii       = choice (map parseAscii asciiMap)
+                where
+                  parseAscii (asc,code) = try (do{ string asc; return code })
+
+
+-- escape code tables
+escMap          = zip ("abfnrtv\\\"\'") ("\a\b\f\n\r\t\v\\\"\'")
+asciiMap        = zip (ascii3codes ++ ascii2codes) (ascii3 ++ ascii2)
+
+ascii2codes     = ["BS","HT","LF","VT","FF","CR","SO","SI","EM",
+                   "FS","GS","RS","US","SP"]
+ascii3codes     = ["NUL","SOH","STX","ETX","EOT","ENQ","ACK","BEL",
+                   "DLE","DC1","DC2","DC3","DC4","NAK","SYN","ETB",
+                   "CAN","SUB","ESC","DEL"]
+
+ascii2          = ['\BS','\HT','\LF','\VT','\FF','\CR','\SO','\SI',
+                   '\EM','\FS','\GS','\RS','\US','\SP']
+ascii3          = ['\NUL','\SOH','\STX','\ETX','\EOT','\ENQ','\ACK',
+                   '\BEL','\DLE','\DC1','\DC2','\DC3','\DC4','\NAK',
+                   '\SYN','\ETB','\CAN','\SUB','\ESC','\DEL']
+
+
 natFloat :: Parser (Either Integer Double)
 natFloat        = do{ char '0'
                     ; zeroNumFloat

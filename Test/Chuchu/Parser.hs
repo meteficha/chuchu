@@ -8,7 +8,7 @@
 -- Portability :  portable
 module
   Test.Chuchu.Parser
-  (chuchu, st, number, int, module Test.Chuchu.Types)
+  (chuchu, st, number, int, text, module Test.Chuchu.Types)
   where
 
 -- base
@@ -37,3 +37,6 @@ nofToDouble (Right d) = d
 
 int :: ChuchuM Integer
 int = P.int
+
+text :: ChuchuM String
+text = P.stringLiteral

@@ -26,35 +26,17 @@ import Test.Chuchu
 -- HUnit
 import Test.HUnit
 
-enterNumber :: Double -> IO ()
-enterNumber n
-  = do
-    putStrLn "setting..."
-    setEnv "environment" (show n) True
-
-getNumber :: IO Double
-getNumber
-  = do
-    putStrLn "getting..."
-    read <$> fromJust <$> getEnv "environment"
-
 defs :: Chuchu IO
 defs
   = chuchu
-    [enterNumber
+    [(\x -> setEnv "environment" x True)
         <$ st "I set the variable as "
-        <*> number
+        <*> text
         <* st " into the environment",
-      let
-          act n
-            = do
-              putStrLn "getting...1"
-              d <- getNumber
-              n @=? d
-         in act
-           <$ st "the variable should have "
-           <*> number
-           <* st " on its content"]
+      (\n -> fromJust <$> getEnv "environment" >>= (@?= n))
+        <$ st "the variable should have "
+        <*> text
+        <* st " on its content"]
 
 main :: IO ()
 main = withArgs ["tests/data/environment.feature"] $ chuchuMain defs id
