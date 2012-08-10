@@ -22,13 +22,13 @@ import Text.Parsec.Text ()
 import Test.Chuchu.Types
 
 {-# ANN module "HLint: ignore" #-}
-natFloat :: Monad m => ChuchuM m (Either Integer Double)
+natFloat :: ChuchuM (Either Integer Double)
 natFloat        = do{ char '0'
                     ; zeroNumFloat
                     }
                   <|> decimalFloat
 
-zeroNumFloat :: Monad m => ChuchuM m (Either Integer Double)
+zeroNumFloat :: ChuchuM (Either Integer Double)
 zeroNumFloat    =  do{ n <- hexadecimal <|> octal
                      ; return (Left n)
                      }
@@ -36,18 +36,18 @@ zeroNumFloat    =  do{ n <- hexadecimal <|> octal
                 <|> fractFloat 0
                 <|> return (Left 0)
 
-decimalFloat :: Monad m => ChuchuM m (Either Integer Double)
+decimalFloat :: ChuchuM (Either Integer Double)
 decimalFloat    = do{ n <- decimal
                     ; option (Left n)
                              (fractFloat n)
                     }
 
-fractFloat :: Monad m => Integer -> ChuchuM m (Either Integer Double)
+fractFloat :: Integer -> ChuchuM (Either Integer Double)
 fractFloat n    = do{ f <- fractExponent n
                     ; return (Right f)
                     }
 
-fractExponent :: Monad m => Integer -> ChuchuM m Double
+fractExponent :: Integer -> ChuchuM Double
 fractExponent n = do{ fract <- fraction
                     ; expo  <- option 1.0 exponent'
                     ; return ((fromInteger n + fract)*expo)
@@ -56,7 +56,7 @@ fractExponent n = do{ fract <- fraction
                   do{ expo <- exponent'
                     ; return ((fromInteger n)*expo)
                     }
-fraction :: Monad m => ChuchuM m Double
+fraction :: ChuchuM Double
 fraction        = do{ char '.'
                     ; digits <- many1 digit <?> "fraction"
                     ; return (foldr op 0.0 digits)
@@ -65,7 +65,7 @@ fraction        = do{ char '.'
                 where
                   op d f    = (f + fromIntegral (digitToInt d))/10.0
 
-exponent' :: Monad m => ChuchuM m Double
+exponent' :: ChuchuM Double
 exponent'       = do{ oneOf "eE"
                     ; f <- sign
                     ; e <- decimal <?> "exponent"
@@ -76,21 +76,21 @@ exponent'       = do{ oneOf "eE"
                    power e  | e < 0      = 1.0/power(-e)
                             | otherwise  = fromInteger (10^e)
 
-sign :: (Monad m, Num a) => ChuchuM m (a -> a)
+sign :: Num a => ChuchuM (a -> a)
 sign            =   (char '-' >> return negate)
                 <|> (char '+' >> return id)
                 <|> return id
 
-decimal :: Monad m => ChuchuM m Integer
+decimal :: ChuchuM Integer
 decimal         = number_ 10 digit
 
-hexadecimal :: Monad m => ChuchuM m Integer
+hexadecimal :: ChuchuM Integer
 hexadecimal     = do{ oneOf "xX"; number_ 16 hexDigit }
 
-octal :: Monad m => ChuchuM m Integer
+octal :: ChuchuM Integer
 octal           = do{ oneOf "oO"; number_ 8 octDigit  }
 
-number_ :: Monad m => Integer -> ChuchuM m Char -> ChuchuM m Integer
+number_ :: Integer -> ChuchuM Char -> ChuchuM Integer
 number_ base baseDigit
     = do{ digits <- many1 baseDigit
         ; let n = foldl (\x d -> base*x + toInteger (digitToInt d)) 0 digits

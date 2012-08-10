@@ -22,10 +22,10 @@ import Test.Chuchu.Parsec
 chuchu :: Monad m => [Chuchu m] -> Chuchu m
 chuchu = choice . map try
 
-st :: Monad m => String -> Chuchu m
+st :: String -> ChuchuM ()
 st = void . string
 
-number :: Monad m => ChuchuM m Double
+number :: ChuchuM Double
 number = nofToDouble <$> natFloat
 
 nofToDouble :: Either Integer Double -> Double

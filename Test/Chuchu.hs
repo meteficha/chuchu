@@ -85,8 +85,7 @@ processStep :: MonadIO m => Step -> CM m Bool
 processStep step
   = do
     cc <- ask
-    result <- lift $ runPT cc () "processStep" $ stBody step
-    case result of
+    case parse cc "processStep" $ stBody step of
       Left e
         -> do
           liftIO
@@ -96,7 +95,7 @@ processStep step
               ++ " doesn't match any step definitions I know."
               ++ show e
           return False
-      Right () -> return True
+      Right m -> lift m >> return True
 
 data Options
   = Options {file_ :: FilePath}

@@ -16,7 +16,6 @@
 import System.Environment
 
 -- transformers
-import Control.Monad.Trans.Class
 import Control.Monad.IO.Class
 import Control.Monad.Trans.State
 
@@ -49,15 +48,15 @@ defs
         st "that I have entered "
         n <- number
         st " into the calculator"
-        lift $ enterNumber n,
+        return $ enterNumber n,
       do
         st "I press divide"
-        lift divide,
+        return divide,
       do
         st "the result should be "
         n <- number
         st " on the screen"
-        lift
+        return
           $ do
             d <- getDisplay
             liftIO $ d @?= n]

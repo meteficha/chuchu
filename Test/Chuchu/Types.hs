@@ -8,12 +8,8 @@
 -- Portability :  portable
 module Test.Chuchu.Types (Chuchu, ChuchuM) where
 
--- text
-import Data.Text
-
 -- parsec
-import Text.Parsec
+import Text.Parsec.Text
 
-type Chuchu m = ChuchuM m ()
-type ChuchuM m a = ParsecT Text () m a
-
+type Chuchu m = ChuchuM (m ())
+type ChuchuM = Parser

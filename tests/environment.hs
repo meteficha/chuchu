@@ -20,9 +20,6 @@ import System.Environment hiding (getEnv)
 -- unix
 import System.Posix.Env
 
--- transformers
-import Control.Monad.Trans.Class
-
 -- chuchu
 import Test.Chuchu
 
@@ -48,12 +45,12 @@ defs
         st "I set the variable as "
         n <- number
         st " into the environment"
-        lift $ enterNumber n,
+        return $ enterNumber n,
       do
         st "the variable should have "
         n <- number
         st " on its content"
-        lift
+        return
           $ do
             putStrLn "getting...1"
             d <- getNumber
