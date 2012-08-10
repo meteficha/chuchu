@@ -7,7 +7,7 @@
 -- Maintainer  :  Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
 -- Stability   :  unstable
 -- Portability :  non-portable (TypeSynonymInstances, FlexibleInstances)
-module Test.Chuchu.Parser (number, int, text, Parser) where
+module Test.Chuchu.Parser (number, int, text, wildcard, Parser) where
 
 -- base
 import Control.Applicative hiding ((<|>))
@@ -36,3 +36,6 @@ int = P.int
 
 text :: Parser String
 text = P.stringLiteral
+
+wildcard :: String -> Parser ()
+wildcard = void . manyTill anyChar . string
