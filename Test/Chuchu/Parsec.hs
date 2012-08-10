@@ -9,7 +9,7 @@
 -- Portability :  portable
 --
 -- This is from the where clause of 'makeTokenParser' with types included.
-module Test.Chuchu.Parsec (natFloat, module Test.Chuchu.Types) where
+module Test.Chuchu.Parsec (natFloat, int, module Test.Chuchu.Types) where
 
 -- base
 import Data.Char
@@ -76,10 +76,27 @@ exponent'       = do{ oneOf "eE"
                    power e  | e < 0      = 1.0/power(-e)
                             | otherwise  = fromInteger (10^e)
 
+-- | This is the only function of this module that have been changed.  The call
+-- to 'lexeme' before 'sign' has been removed.
+int :: ChuchuM Integer
+int             = do{ f <- sign
+                    ; n <- nat
+                    ; return (f n)
+                    }
+
 sign :: Num a => ChuchuM (a -> a)
 sign            =   (char '-' >> return negate)
                 <|> (char '+' >> return id)
                 <|> return id
+
+nat :: ChuchuM Integer
+nat             = zeroNumber <|> decimal
+
+zeroNumber :: ChuchuM Integer
+zeroNumber      = do{ char '0'
+                    ; hexadecimal <|> octal <|> decimal <|> return 0
+                    }
+                  <?> ""
 
 decimal :: ChuchuM Integer
 decimal         = number_ 10 digit

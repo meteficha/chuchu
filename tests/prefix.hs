@@ -26,19 +26,19 @@ import Test.Chuchu
 -- HUnit
 import Test.HUnit
 
-type CalculatorT m = StateT Double m
+type CalculatorT m = StateT Integer m
 
 defs :: Chuchu (CalculatorT IO)
 defs
   = chuchu
-    [(\x -> modify (+ x)) <$ st "I add " <*> number,
+    [(\x -> modify (+ x)) <$ st "I add " <*> int,
       (\n x -> modify (+ n * x))
         <$ st "I add "
-        <*> number
+        <*> int
         <* st " "
-        <*> number
+        <*> int
         <* st " times",
-      (\x -> get >>= liftIO . (@?= x)) <$ st "the result should be " <*> number]
+      (\x -> get >>= liftIO . (@?= x)) <$ st "the result should be " <*> int]
 
 main :: IO ()
 main
