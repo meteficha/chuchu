@@ -7,7 +7,7 @@
 -- Stability   :  unstable
 -- Portability :  non-portable (DeriveDataTypeable)
 --
--- | This module provides the main function for a test file based on Behaviour
+-- This module provides the main function for a test file based on Behaviour
 -- Driven Development for Haskell.
 --
 -- Example for a Stack calculator:
@@ -35,7 +35,7 @@
 -- import Test.Chuchu
 -- import Test.HUnit
 --
--- type CalculatorT m = StateT [Double] m
+-- type CalculatorT m = StateT \[Double\] m
 --
 -- enterNumber :: Monad m => Double -> CalculatorT m ()
 -- enterNumber = modify . (:)
@@ -59,10 +59,10 @@
 --       enterNumber
 --     When "I press divide" $ const divide
 --     Then ("the result should be " *> number <* " on the screen")
---       $ \n
+--       $ \\n
 --         -> do
 --           d <- getDisplay
---           liftIO $ d @?= n
+--           liftIO $ d \@?= n
 --
 -- main :: IO ()
 -- main = chuchuMain defs (`evalStateT` [])
