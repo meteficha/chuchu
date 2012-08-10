@@ -8,7 +8,7 @@
 -- Portability :  non-portable (DeriveDataTypeable)
 module
   Test.Chuchu
-  (chuchuMain, module Test.Chuchu.Types, module Test.Chuchu.Parser)
+  (chuchuMain, module Test.Chuchu.Types, module Test.Chuchu.Parser, MonadIO)
   where
 
 -- base

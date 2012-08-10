@@ -10,7 +10,7 @@
 --
 -- This is from the where clause of 'makeTokenParser' with types included and
 -- calls to 'lexeme' removed in the functions where this is noted.
-module Test.Chuchu.Parsec (stringLiteral, natFloat, int) where
+module Test.Chuchu.Parsec (stringLiteral, natFloat, int, Parser) where
 
 -- base
 import Data.Char

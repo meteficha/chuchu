@@ -7,7 +7,7 @@
 -- Maintainer  :  Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
 -- Stability   :  unstable
 -- Portability :  non-portable (TypeSynonymInstances, FlexibleInstances)
-module Test.Chuchu.Parser (number, int, text) where
+module Test.Chuchu.Parser (number, int, text, Parser) where
 
 -- base
 import Control.Applicative hiding ((<|>))
