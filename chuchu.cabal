@@ -24,7 +24,8 @@ library
   exposed-modules:
     Test.Chuchu,
     Test.Chuchu.Types,
-    Test.Chuchu.Parser,
+    Test.Chuchu.Parser
+  other-modules:
     Test.Chuchu.Parsec
   build-depends:
     base >= 4 && < 5,
