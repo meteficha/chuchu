@@ -18,8 +18,13 @@ import Control.Applicative hiding ((<|>))
 import Text.Parsec
 import Text.Parsec.Text
 
+-- | The most command use case where the return value of the Monad is ignored.
 type Chuchu m  = ChuchuM m ()
 
+-- | The Monad on which the step rules are constructed.  'Given', 'When',
+-- 'Then', 'And' and 'But' are interpreted in the same way by the program.  All
+-- of them receive a parser and an action to run if the parser finishes
+-- correctly.
 data ChuchuM m a where
   Given :: Parser a -> (a -> m ()) -> ChuchuM m ()
   When :: Parser a -> (a -> m ()) -> ChuchuM m ()
@@ -33,6 +38,9 @@ instance Monad (ChuchuM m) where
   return _ = Nil
   step >>= k = Cons step $ k undefined
 
+-- | Converts the Monad into a single 'Parser' that executes the specified
+-- action if the parser is executed correctly.  It includes an 'eof' on the
+-- parser of each step to avoid it from accepting prefixes of the desired rule.
 runChuchu :: ChuchuM m a -> Parser (m ())
 runChuchu Nil = unexpected "Unknown step"
 runChuchu (Cons cc1 cc2) = runChuchu cc1 <|> runChuchu cc2
