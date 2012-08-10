@@ -19,7 +19,7 @@ import Data.Char
 import Text.Parsec
 import Text.Parsec.Text
 
-{-# ANN module "HLint: ignore" #-}
+{-# ANN module ("HLint: ignore" :: String) #-}
 -- | 'lexeme' removed.
 stringLiteral :: Parser String
 stringLiteral   = do{ str <- between (char '"')

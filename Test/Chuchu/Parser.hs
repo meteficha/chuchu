@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 -- |
 -- Module      :  Test.Chuchu.Parser
 -- Copyright   :  (c) Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com> 2012
@@ -5,15 +6,16 @@
 --
 -- Maintainer  :  Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
 -- Stability   :  unstable
--- Portability :  portable
+-- Portability :  non-portable (TypeSynonymInstances, FlexibleInstances)
 module
   Test.Chuchu.Parser
-  (chuchu, st, number, int, text, module Test.Chuchu.Types)
+  (chuchu, number, int, text, module Test.Chuchu.Types)
   where
 
 -- base
 import Control.Applicative hiding ((<|>))
 import Control.Monad
+import GHC.Exts
 
 -- parsec
 import Text.Parsec
@@ -22,11 +24,11 @@ import Text.Parsec
 import Test.Chuchu.Types
 import qualified Test.Chuchu.Parsec as P
 
+instance IsString (ChuchuM a) where
+  fromString s = void (string s) >> return undefined
+
 chuchu :: Monad m => [Chuchu m] -> Chuchu m
 chuchu = choice . map (try . (<* eof))
-
-st :: String -> ChuchuM ()
-st = void . string
 
 number :: ChuchuM Double
 number = nofToDouble <$> P.natFloat

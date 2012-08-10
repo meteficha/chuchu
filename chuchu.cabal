@@ -34,7 +34,7 @@ library
     parsec >= 3.1 && < 3.2,
     cmdargs >= 0.9 && < 0.10,
     abacate >= 0.0 && < 0.1
-  extensions: DeriveDataTypeable
+  extensions: DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances
   ghc-options: -Wall -O
 
 Test-Suite environment
@@ -46,6 +46,7 @@ Test-Suite environment
     unix >= 2.5 && < 2.6,
     chuchu,
     HUnit >= 1.2 && < 1.3
+  extensions: OverloadedStrings
   ghc-options: -Wall
 
 Test-Suite calculator
@@ -57,6 +58,7 @@ Test-Suite calculator
     transformers >= 0.3 && < 0.4,
     chuchu,
     HUnit >= 1.2 && < 1.3
+  extensions: OverloadedStrings
   ghc-options: -Wall
 
 Test-Suite prefix
@@ -68,4 +70,5 @@ Test-Suite prefix
     transformers >= 0.3 && < 0.4,
     chuchu,
     HUnit >= 1.2 && < 1.3
+  extensions: OverloadedStrings
   ghc-options: -Wall

@@ -31,14 +31,9 @@ type CalculatorT m = StateT Integer m
 defs :: Chuchu (CalculatorT IO)
 defs
   = chuchu
-    [(\x -> modify (+ x)) <$ st "I add " <*> int,
-      (\n x -> modify (+ n * x))
-        <$ st "I add "
-        <*> int
-        <* st " "
-        <*> int
-        <* st " times",
-      (\x -> get >>= liftIO . (@?= x)) <$ st "the result should be " <*> int]
+    [(\x -> modify (+ x)) <$ "I add " <*> int,
+      (\n x -> modify (+ n * x)) <$ "I add " <*> int <* " " <*> int <* " times",
+      (\x -> get >>= liftIO . (@?= x)) <$ "the result should be " <*> int]
 
 main :: IO ()
 main

@@ -30,13 +30,13 @@ defs :: Chuchu IO
 defs
   = chuchu
     [(\x -> setEnv "environment" x True)
-        <$ st "I set the variable as "
+        <$ "I set the variable as "
         <*> text
-        <* st " into the environment",
+        <* " into the environment",
       (\n -> fromJust <$> getEnv "environment" >>= (@?= n))
-        <$ st "the variable should have "
+        <$ "the variable should have "
         <*> text
-        <* st " on its content"]
+        <* " on its content"]
 
 main :: IO ()
 main = withArgs ["tests/data/environment.feature"] $ chuchuMain defs id

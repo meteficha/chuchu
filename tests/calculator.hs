@@ -45,17 +45,14 @@ divide = do
 defs :: Chuchu (CalculatorT IO)
 defs
   = chuchu
-    [enterNumber
-        <$ st "that I have entered "
-        <*> number
-        <* st " into the calculator",
-      divide <$ st "I press divide",
+    [enterNumber <$ "that I have entered " <*> number <* " into the calculator",
+      divide <$ "I press divide",
       let
           act n
             = do
               d <- getDisplay
               liftIO $ d @?= n
-        in act <$ st "the result should be " <*> number <* st " on the screen"]
+        in act <$ "the result should be " <*> number <* " on the screen"]
 
 main :: IO ()
 main
