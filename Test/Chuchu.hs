@@ -6,7 +6,10 @@
 -- Maintainer  :  Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
 -- Stability   :  unstable
 -- Portability :  non-portable (DeriveDataTypeable)
-module Test.Chuchu (chuchuMain, module Test.Chuchu.Parser) where
+module
+  Test.Chuchu
+  (chuchuMain, module Test.Chuchu.Types, module Test.Chuchu.Parser)
+  where
 
 -- base
 import Control.Applicative
@@ -22,18 +25,19 @@ import Control.Monad.Trans.Reader
 
 -- parsec
 import Text.Parsec
-import Text.Parsec.Text ()
+import Text.Parsec.Text
 
 -- cmdargs
 import System.Console.CmdArgs
 
 -- abacate
-import Language.Abacate
+import Language.Abacate hiding (StepKeyword (..))
 
 -- chuchu
+import Test.Chuchu.Types
 import Test.Chuchu.Parser
 
-chuchuMain :: MonadIO m => Chuchu m -> (m () -> IO ()) -> IO ()
+chuchuMain :: MonadIO m => [Chuchu m] -> (m () -> IO ()) -> IO ()
 chuchuMain cc runMIO
   = do
     path <- getPath
@@ -45,10 +49,20 @@ chuchuMain cc runMIO
             (do
               code <- processAbacate abacate
               unless code $ liftIO exitFailure)
-            cc
+          $ chuchu cc
       (Left e) -> error $ "Could not parse " ++ path ++ ": " ++ show e
 
-type CM m a = ReaderT (Chuchu m) m a
+chuchu :: Monad m => [Chuchu m] -> Parser (m ())
+chuchu = choice . map (try . (<* eof) . chuchuToParser)
+
+chuchuToParser :: Chuchu m -> Parser (m ())
+chuchuToParser (Given p f) = f <$> p
+chuchuToParser (When p f) = f <$> p
+chuchuToParser (Then p f) = f <$> p
+chuchuToParser (And p f) = f <$> p
+chuchuToParser (But p f) = f <$> p
+
+type CM m a = ReaderT (Parser (m ())) m a
 
 processAbacate :: MonadIO m => Abacate -> CM m Bool
 processAbacate feature

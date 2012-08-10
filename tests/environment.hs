@@ -26,17 +26,12 @@ import Test.Chuchu
 -- HUnit
 import Test.HUnit
 
-defs :: Chuchu IO
+defs :: [Chuchu IO]
 defs
-  = chuchu
-    [(\x -> setEnv "environment" x True)
-        <$ "I set the variable as "
-        <*> text
-        <* " into the environment",
-      (\n -> fromJust <$> getEnv "environment" >>= (@?= n))
-        <$ "the variable should have "
-        <*> text
-        <* " on its content"]
+  = [When ("I set the variable as " *> text <* " into the environment")
+      $ \x -> setEnv "environment" x True,
+    Then ("the variable should have " *> text <* " on its content")
+      $ \n -> fromJust <$> getEnv "environment" >>= (@?= n)]
 
 main :: IO ()
 main = withArgs ["tests/data/environment.feature"] $ chuchuMain defs id

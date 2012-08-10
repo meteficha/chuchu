@@ -17,6 +17,6 @@ Feature: Don't match prefixes
   Programmers must be able to write steps that are prefix of others
 
   Scenario: Prefixes
-    Given I add 1
-    When I add 1 2 times
+    When I add 1
+    And I add 1 2 times
     Then the result should be 3

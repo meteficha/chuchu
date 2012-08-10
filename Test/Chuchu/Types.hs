@@ -5,11 +5,16 @@
 --
 -- Maintainer  :  Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
 -- Stability   :  unstable
--- Portability :  portable
-module Test.Chuchu.Types (Chuchu, ChuchuM) where
+-- Portability :  non-portable (GADTs)
+module Test.Chuchu.Types (Chuchu, ChuchuM (..)) where
 
 -- parsec
 import Text.Parsec.Text
 
-type Chuchu m = ChuchuM (m ())
-type ChuchuM = Parser
+type Chuchu m = ChuchuM m ()
+data ChuchuM m a where
+  Given :: Parser a -> (a -> m ()) -> ChuchuM m ()
+  When :: Parser a -> (a -> m ()) -> ChuchuM m ()
+  Then :: Parser a -> (a -> m ()) -> ChuchuM m ()
+  And :: Parser a -> (a -> m ()) -> ChuchuM m ()
+  But :: Parser a -> (a -> m ()) -> ChuchuM m ()
