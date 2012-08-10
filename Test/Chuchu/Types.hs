@@ -8,7 +8,7 @@
 -- Portability :  non-portable (GADTs)
 module
   Test.Chuchu.Types
-  (Chuchu, ChuchuM (Given, When, Then, And, But), runChuchu, Parser)
+  (Chuchu, ChuchuM (Given, When, Then, And, But), runChuchu)
   where
 
 -- base
