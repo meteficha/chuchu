@@ -20,3 +20,7 @@ Feature: Environment
     When I set the variable as "environment" into the environment
     # Comment! =)
     Then the variable should have "environment" on its content
+
+  Scenario: E-mail variables
+    When I set the  as e-mail marcotmarcot@gmail.com into the environment
+    Then the  should have e-mail marcotmarcot@gmail.com on its content

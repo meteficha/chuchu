@@ -9,7 +9,7 @@
 -- Portability :  non-portable (TypeSynonymInstances, FlexibleInstances)
 --
 -- This modules provides some utility parsers for creating step rules.
-module Test.Chuchu.Parser (number, int, text, wildcard) where
+module Test.Chuchu.Parser (number, int, text, wildcard, email) where
 
 -- base
 import Control.Applicative hiding ((<|>))
@@ -22,6 +22,7 @@ import Text.Parsec.Text
 
 -- chuchu
 import qualified Test.Chuchu.Parsec as P
+import Test.Chuchu.Email
 
 instance IsString (Parser a) where
   fromString s = void (string s) >> return undefined
@@ -46,3 +47,10 @@ text = P.stringLiteral
 -- | Parses anything until the string passed as parameter, and also the string.
 wildcard :: String -> Parser ()
 wildcard = void . manyTill anyChar . string
+
+-- | Parses a simplified e-mail address and return everything that was parsed as
+-- a simple 'String'.  This is a very simplified parser for e-mail, which does
+-- not follow RFC5322. Basically, it parses @TEXT\@TEXT@, where TEXT is
+-- @alphaNum \<|> oneOf \"!#$%&\'*+-\/=?^_\`{|}~.\"@.
+email :: Parser String
+email = addrSpecSimple

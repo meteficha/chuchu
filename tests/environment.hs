@@ -33,6 +33,18 @@ defs
       $ \x -> setEnv "environment" x True
     Then ("the " *> wildcard " should have " *> text <* " on its content")
       $ \n -> fromJust <$> getEnv "environment" >>= (@?= n)
+    When
+        ("I set the "
+          *> wildcard " as e-mail "
+          *> email
+          <* " into the environment")
+      $ \x -> setEnv "environment" x True
+    Then
+        ("the "
+          *> wildcard " should have e-mail "
+          *> email
+          <* " on its content")
+      $ \n -> fromJust <$> getEnv "environment" >>= (@?= n)
 
 main :: IO ()
 main = withArgs ["tests/data/environment.feature"] $ chuchuMain defs id
