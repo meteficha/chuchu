@@ -18,7 +18,8 @@ category: Test
 tested-with: GHC ==7.4.2
 extra-source-files:
   tests/data/environment.feature,
-  tests/data/calculator.feature
+  tests/data/calculator.feature,
+  tests/data/prefix.feature
 
 library
   exposed-modules:
