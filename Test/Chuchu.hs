@@ -7,6 +7,10 @@
 -- Stability   :  unstable
 -- Portability :  non-portable (DeriveDataTypeable)
 --
+-- Chuchu is a system similar to Ruby's Cucumber for Behaviour Driven
+-- Development.  It works with a language similar to Cucumber's Gherkin, which
+-- is parsed using package abacate.
+--
 -- This module provides the main function for a test file based on Behaviour
 -- Driven Development for Haskell.
 --
