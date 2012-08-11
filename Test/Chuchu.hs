@@ -12,60 +12,60 @@
 --
 -- Example for a Stack calculator:
 --
--- calculator.feature:
+-- @calculator.feature@:
 --
 -- @
--- Feature: Division
---   In order to avoid silly mistakes
---   Cashiers must be able to calculate a fraction
+--Feature: Division
+--  In order to avoid silly mistakes
+--  Cashiers must be able to calculate a fraction
 --
---   Scenario: Regular numbers
---     Given that I have entered 2 into the calculator
---     And that I have entered 3 into the calculator
---     When I press divide
---     Then the result should be 1.5 on the screen
+--  Scenario: Regular numbers
+--    Given that I have entered 3 into the calculator
+--    And that I have entered 2 into the calculator
+--    When I press divide
+--    Then the result should be 1.5 on the screen
 -- @
 --
--- calculator.hs
+-- @calculator.hs@:
 --
 -- @
--- import Control.Applicative
--- import Control.Monad.IO.Class
--- import Control.Monad.Trans.State
--- import Test.Chuchu
--- import Test.HUnit
+--import Control.Applicative
+--import Control.Monad.IO.Class
+--import Control.Monad.Trans.State
+--import Test.Chuchu
+--import Test.HUnit
 --
--- type CalculatorT m = StateT \[Double\] m
+--type CalculatorT m = StateT \[Double\] m
 --
--- enterNumber :: Monad m => Double -> CalculatorT m ()
--- enterNumber = modify . (:)
+--enterNumber :: Monad m => Double -> CalculatorT m ()
+--enterNumber = modify . (:)
 --
--- getDisplay :: Monad m => CalculatorT m Double
--- getDisplay
---   = do
---     ns <- get
---     return $ head $ ns ++ [0]
+--getDisplay :: Monad m => CalculatorT m Double
+--getDisplay
+--  = do
+--    ns <- get
+--    return $ head $ ns ++ [0]
 --
--- divide :: Monad m => CalculatorT m ()
--- divide = do
---   (n1:n2:ns) <- get
---   put $ (n1 / n2) : ns
+--divide :: Monad m => CalculatorT m ()
+--divide = do
+--  (n1:n2:ns) <- get
+--  put $ (n2 / n1) : ns
 --
--- defs :: Chuchu (CalculatorT IO)
--- defs
---   = do
---     Given
---       ("that I have entered " *> number <* " into the calculator")
---       enterNumber
---     When "I press divide" $ const divide
---     Then ("the result should be " *> number <* " on the screen")
---       $ \\n
---         -> do
---           d <- getDisplay
---           liftIO $ d \@?= n
+--defs :: Chuchu (CalculatorT IO)
+--defs
+--  = do
+--    Given
+--      ("that I have entered " *> number <* " into the calculator")
+--      enterNumber
+--    When "I press divide" $ const divide
+--    Then ("the result should be " *> number <* " on the screen")
+--      $ \\n
+--        -> do
+--          d <- getDisplay
+--          liftIO $ d \@?= n
 --
--- main :: IO ()
--- main = chuchuMain defs (`evalStateT` [])
+--main :: IO ()
+--main = chuchuMain defs (\`evalStateT\` [])
 -- @
 
 module
