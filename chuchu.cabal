@@ -38,7 +38,7 @@ library
     cmdargs >= 0.9 && < 0.10,
     abacate >= 0.0 && < 0.1
   extensions: DeriveDataTypeable, TypeSynonymInstances, FlexibleInstances, GADTs
-  ghc-options: -Wall -O
+  ghc-options: -Wall
 
 Test-Suite environment
   type: exitcode-stdio-1.0
