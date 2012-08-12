@@ -36,7 +36,7 @@ data ChuchuM m a where
 
 instance Monad (ChuchuM m) where
   return _ = Nil
-  step >>= k = Cons step $ k undefined
+  step >>= k = Cons step $ k $ error "(>>=): ChuchuM does not support 'return'."
 
 -- | Converts the Monad into a single 'Parser' that executes the specified
 -- action if the parser is executed correctly.  It includes an 'eof' on the
