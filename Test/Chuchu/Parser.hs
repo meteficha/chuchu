@@ -25,7 +25,10 @@ import qualified Test.Chuchu.Parsec as P
 import Test.Chuchu.Email
 
 instance IsString (Parser a) where
-  fromString s = void (string s) >> return undefined
+  fromString s
+    = void (string s)
+      >> return
+        (error $ "The return value of string parsers should not be used")
 
 -- | Parses a floating point number, with the same syntax as accepted by
 -- Haskell.
