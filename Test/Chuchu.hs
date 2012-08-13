@@ -59,10 +59,10 @@
 --defs
 --  = do
 --    Given
---      ("that I have entered " *> number <* " into the calculator")
+--      (\"that I have entered \" *> number <* \" into the calculator\")
 --      enterNumber
---    When "I press divide" $ const divide
---    Then ("the result should be " *> number <* " on the screen")
+--    When \"I press divide\" $ const divide
+--    Then (\"the result should be \" *> number <* \" on the screen\")
 --      $ \\n
 --        -> do
 --          d <- getDisplay
