@@ -5,7 +5,7 @@
 --
 -- Maintainer  :  Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
 -- Stability   :  unstable
--- Portability :  non-portable (GADTs)
+-- Portability :  non-portable (GADTs, GeneralizedNewtypeDeriving)
 module
   Test.Chuchu.Types
   (ChuchuParser (..), Chuchu, ChuchuM (Given, When, Then, And, But), runChuchu)
@@ -13,6 +13,7 @@ module
 
 -- base
 import Control.Applicative hiding ((<|>))
+import GHC.Exts
 
 -- parsec
 import Text.Parsec
@@ -22,10 +23,11 @@ import Text.Parsec.Text
 -- | @newtype@ for Parsec's 'Parser' used on this library.  The
 -- main reason for not using 'Parser' directly is to be able to
 -- define the 'IsString' instance.
-newtype ChuchuParser a = ChuchuParser (Parser a)
+newtype ChuchuParser a
+  = ChuchuParser (Parser a) deriving (Functor, Applicative, Monad)
 
 instance IsString (ChuchuParser a) where
-  fromString s = ChuchuParser (void (string s) >> return err)
+  fromString s = ChuchuParser (string s >> return err)
     where err = error "fromString: ChuchuParser strings do not return any useful value."
 
 

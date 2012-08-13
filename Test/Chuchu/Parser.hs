@@ -14,11 +14,9 @@ module Test.Chuchu.Parser (number, int, text, wildcard, email) where
 -- base
 import Control.Applicative hiding ((<|>))
 import Control.Monad
-import GHC.Exts
 
 -- parsec
 import Text.Parsec
-import Text.Parsec.Text
 
 -- chuchu
 import Test.Chuchu.Types (ChuchuParser(..))
