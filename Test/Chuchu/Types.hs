@@ -8,7 +8,7 @@
 -- Portability :  non-portable (GADTs)
 module
   Test.Chuchu.Types
-  (Chuchu, ChuchuM (Given, When, Then, And, But), runChuchu)
+  (ChuchuParser (..), Chuchu, ChuchuM (Given, When, Then, And, But), runChuchu)
   where
 
 -- base
@@ -18,6 +18,17 @@ import Control.Applicative hiding ((<|>))
 import Text.Parsec
 import Text.Parsec.Text
 
+
+-- | @newtype@ for Parsec's 'Parser' used on this library.  The
+-- main reason for not using 'Parser' directly is to be able to
+-- define the 'IsString' instance.
+newtype ChuchuParser a = ChuchuParser (Parser a)
+
+instance IsString (ChuchuParser a) where
+  fromString s = ChuchuParser (void (string s) >> return err)
+    where err = error "fromString: ChuchuParser strings do not return any useful value."
+
+
 -- | The most command use case where the return value of the Monad is ignored.
 type Chuchu m  = ChuchuM m ()
 
@@ -26,11 +37,11 @@ type Chuchu m  = ChuchuM m ()
 -- of them receive a parser and an action to run if the parser finishes
 -- correctly.
 data ChuchuM m a where
-  Given :: Parser a -> (a -> m ()) -> ChuchuM m ()
-  When :: Parser a -> (a -> m ()) -> ChuchuM m ()
-  Then :: Parser a -> (a -> m ()) -> ChuchuM m ()
-  And :: Parser a -> (a -> m ()) -> ChuchuM m ()
-  But :: Parser a -> (a -> m ()) -> ChuchuM m ()
+  Given :: ChuchuParser a -> (a -> m ()) -> ChuchuM m ()
+  When :: ChuchuParser a -> (a -> m ()) -> ChuchuM m ()
+  Then :: ChuchuParser a -> (a -> m ()) -> ChuchuM m ()
+  And :: ChuchuParser a -> (a -> m ()) -> ChuchuM m ()
+  But :: ChuchuParser a -> (a -> m ()) -> ChuchuM m ()
   Nil :: ChuchuM m a
   Cons :: ChuchuM m b -> ChuchuM m a -> ChuchuM m a
 
@@ -50,5 +61,5 @@ runChuchu (Then p f) = apply p f
 runChuchu (And p f) = apply p f
 runChuchu (But p f) = apply p f
 
-apply :: Parser a -> (a -> m ()) -> Parser (m ())
-apply p f = try $ f <$> p <* eof
+apply :: ChuchuParser a -> (a -> m ()) -> Parser (m ())
+apply (ChuchuParser p) f = try $ f <$> p <* eof
