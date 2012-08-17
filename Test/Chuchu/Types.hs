@@ -13,7 +13,7 @@ module
 
 -- base
 import Control.Applicative hiding ((<|>))
-import GHC.Exts
+import Data.String
 
 -- parsec
 import Text.Parsec
