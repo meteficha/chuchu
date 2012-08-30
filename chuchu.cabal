@@ -22,6 +22,10 @@ extra-source-files:
   tests/data/calculator.feature,
   tests/data/prefix.feature
 
+source-repository head
+  type:     git
+  location: git://github.com/marcotmarcot/chuchu.git
+
 library
   exposed-modules:
     Test.Chuchu,
