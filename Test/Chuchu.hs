@@ -84,6 +84,9 @@ import System.Environment
 import System.Exit
 import System.IO
 
+-- text
+import qualified Data.Text as T
+
 -- transformers
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
@@ -95,6 +98,9 @@ import Text.Parsec.Text
 
 -- cmdargs
 import System.Console.CmdArgs
+
+-- ansi-wl-pprint
+import qualified Text.PrettyPrint.ANSI.Leijen as D
 
 -- abacate
 import Language.Abacate hiding (StepKeyword (..))
@@ -123,15 +129,39 @@ chuchuMain cc runMIO
 
 type CM m a = ReaderT (Parser (m ())) m a
 
+
 processAbacate :: MonadIO m => Abacate -> CM m Bool
 processAbacate feature
   = do
+    -- Print feature description.
+    putDoc $ describeAbacate feature
+
+    -- Execute features.
     bCode
       <- case fBackground feature of
         Nothing -> return True
-        Just background -> processBasicScenario background
+        Just background -> processBasicScenario BackgroundKind background
     feCode <- processFeatureElements $ fFeatureElements feature
     return $ bCode && feCode
+
+-- | Print a 'D.Doc' describing what we're currently processing.
+putDoc :: MonadIO m => D.Doc -> CM m ()
+putDoc = liftIO . D.putDoc . (D.<> D.linebreak)
+
+-- | Creates a pretty description of the feature.
+describeAbacate :: Abacate -> D.Doc
+describeAbacate feature =
+  (if null (fTags feature) then id else (describeTags (fTags feature) D.<$>)) $
+  D.white (t2d (fHeader feature))
+
+-- | Creates a vertical list of tags.
+describeTags :: Tags -> D.Doc
+describeTags = D.vsep . map (D.dullcyan . ("@" D.<>) . t2d)
+
+-- | Same as 'D.text' but using 'T.Text'.
+t2d :: T.Text -> D.Doc
+t2d = D.text . T.unpack
+
 
 processFeatureElements :: MonadIO m => FeatureElements -> CM m Bool
 processFeatureElements featureElements
@@ -143,10 +173,30 @@ processFeatureElement :: MonadIO m => FeatureElement -> CM m Bool
 processFeatureElement (FESO _)
   = liftIO (hPutStrLn stderr "Scenario Outlines are not supported yet.")
     >> return False
-processFeatureElement (FES sc) = processBasicScenario $ scBasicScenario sc
+processFeatureElement (FES sc) =
+  processBasicScenario (ScenarioKind $ scTags sc) $ scBasicScenario sc
 
-processBasicScenario :: MonadIO m => BasicScenario -> CM m Bool
-processBasicScenario = processSteps . bsSteps
+
+data BasicScenarioKind = BackgroundKind | ScenarioKind Tags
+
+processBasicScenario :: MonadIO m => BasicScenarioKind -> BasicScenario -> CM m Bool
+processBasicScenario kind scenario = do
+  putDoc $ describeBasicScenario kind scenario
+  processSteps (bsSteps scenario)
+
+-- | Creates a pretty description of the basic scenario's header.
+describeBasicScenario :: BasicScenarioKind -> BasicScenario -> D.Doc
+describeBasicScenario kind scenario =
+  D.indent 2 $
+  prettyTags kind $
+  D.bold ((describeBasicScenarioKind kind) D.<+> t2d (bsName scenario))
+    where describeBasicScenarioKind BackgroundKind   = "Background:"
+          describeBasicScenarioKind (ScenarioKind _) = "Scenario:"
+
+          prettyTags BackgroundKind      = id
+          prettyTags (ScenarioKind tags) = (describeTags tags D.<$>)
+
+
 
 processSteps :: MonadIO m => Steps -> CM m Bool
 processSteps steps
@@ -161,6 +211,7 @@ processStep step
     case parse cc "processStep" $ stBody step of
       Left e
         -> do
+          putDoc $ describeStep UnknownStep step
           liftIO
             $ hPutStrLn stderr
             $ "The step "
@@ -168,7 +219,23 @@ processStep step
               ++ " doesn't match any step definitions I know."
               ++ show e
           return False
-      Right m -> lift m >> return True
+      Right m -> do
+        -- TODO: Catch failures and treat them nicely.
+        putDoc $ describeStep SuccessfulStep step
+        lift m
+        return True
+
+data StepResult = SuccessfulStep | UnknownStep
+
+-- | Pretty-prints a step that has already finished executing.
+describeStep :: StepResult -> Step -> D.Doc
+describeStep result step =
+  D.indent 4 $
+  color result (D.text (show $ stStepKeyword step) D.<+> t2d (stBody step))
+    where
+      color SuccessfulStep = D.green
+      color UnknownStep    = D.yellow
+
 
 data Options
   = Options {file_ :: FilePath}
