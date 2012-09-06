@@ -26,9 +26,8 @@ import Text.Parsec.Text
 newtype ChuchuParser a
   = ChuchuParser (Parser a) deriving (Functor, Applicative, Monad)
 
-instance IsString (ChuchuParser a) where
-  fromString s = ChuchuParser (string s >> return err)
-    where err = error "fromString: ChuchuParser strings do not return any useful value."
+instance (a ~ ()) => IsString (ChuchuParser a) where
+  fromString s = ChuchuParser (string s >> return ())
 
 
 -- | The most command use case where the return value of the Monad is ignored.

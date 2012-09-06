@@ -29,6 +29,7 @@ import Test.HUnit
 defs :: Chuchu IO
 defs
   = do
+    Given "that I start the test" $ \() -> return ()
     When ("I set the " *> wildcard " as " *> text <* " into the environment")
       $ \x -> setEnv "environment" x True
     Then ("the " *> wildcard " should have " *> text <* " on its content")

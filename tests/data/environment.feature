@@ -17,6 +17,7 @@ Feature: Environment
   Programmers must be able to write and read environment variables
 
   Scenario: Write then read
+    Given that I start the test
     When I set the variable as "environment" into the environment
     # Comment! =)
     Then the variable should have "environment" on its content
