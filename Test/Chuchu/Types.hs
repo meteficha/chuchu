@@ -30,7 +30,7 @@ instance (a ~ ()) => IsString (ChuchuParser a) where
   fromString s = ChuchuParser (string s >> return ())
 
 
--- | The most command use case where the return value of the Monad is ignored.
+-- | The most common use case where the return value of the Monad is ignored.
 type Chuchu m  = ChuchuM m ()
 
 -- | The Monad on which the step rules are constructed.  'Given', 'When',
