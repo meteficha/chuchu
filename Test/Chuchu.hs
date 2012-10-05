@@ -127,10 +127,10 @@ chuchuMain cc runMIO
           $ runChuchu cc
       (Left e) -> error $ "Could not parse " ++ path ++ ": " ++ show e
 
-type CM m a = ReaderT (Parser (m ())) m a
+type Execution m a = ReaderT (Parser (m ())) m a
 
 
-processAbacate :: MonadIO m => Abacate -> CM m Bool
+processAbacate :: MonadIO m => Abacate -> Execution m Bool
 processAbacate feature
   = do
     -- Print feature description.
@@ -145,7 +145,7 @@ processAbacate feature
     return $ bCode && feCode
 
 -- | Print a 'D.Doc' describing what we're currently processing.
-putDoc :: MonadIO m => D.Doc -> CM m ()
+putDoc :: MonadIO m => D.Doc -> Execution m ()
 putDoc = liftIO . D.putDoc . (D.<> D.linebreak)
 
 -- | Creates a pretty description of the feature.
@@ -163,13 +163,13 @@ t2d :: T.Text -> D.Doc
 t2d = D.text . T.unpack
 
 
-processFeatureElements :: MonadIO m => FeatureElements -> CM m Bool
+processFeatureElements :: MonadIO m => FeatureElements -> Execution m Bool
 processFeatureElements featureElements
   = do
     codes <- mapM processFeatureElement featureElements
     return $ and codes
 
-processFeatureElement :: MonadIO m => FeatureElement -> CM m Bool
+processFeatureElement :: MonadIO m => FeatureElement -> Execution m Bool
 processFeatureElement (FESO _)
   = liftIO (hPutStrLn stderr "Scenario Outlines are not supported yet.")
     >> return False
@@ -179,7 +179,7 @@ processFeatureElement (FES sc) =
 
 data BasicScenarioKind = BackgroundKind | ScenarioKind Tags
 
-processBasicScenario :: MonadIO m => BasicScenarioKind -> BasicScenario -> CM m Bool
+processBasicScenario :: MonadIO m => BasicScenarioKind -> BasicScenario -> Execution m Bool
 processBasicScenario kind scenario = do
   putDoc $ describeBasicScenario kind scenario
   processSteps (bsSteps scenario)
@@ -198,13 +198,13 @@ describeBasicScenario kind scenario =
 
 
 
-processSteps :: MonadIO m => Steps -> CM m Bool
+processSteps :: MonadIO m => Steps -> Execution m Bool
 processSteps steps
   = do
     codes <- mapM processStep steps
     return $ and codes
 
-processStep :: MonadIO m => Step -> CM m Bool
+processStep :: MonadIO m => Step -> Execution m Bool
 processStep step
   = do
     cc <- ask
