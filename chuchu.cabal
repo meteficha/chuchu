@@ -21,7 +21,8 @@ extra-source-files:
   tests/data/environment.feature,
   tests/data/calculator.feature,
   tests/data/prefix.feature,
-  tests/data/multiple_scenarios.feature
+  tests/data/multiple_scenarios.feature,
+  tests/data/background_and_multiple_scenarios.feature
 
 source-repository head
   type:     git
@@ -85,6 +86,18 @@ Test-Suite prefix
 Test-Suite multiple_scenarios
   type: exitcode-stdio-1.0
   main-is: multiple_scenarios.hs
+  hs-source-dirs: tests
+  build-depends:
+    base >= 4 && < 5,
+    transformers >= 0.3 && < 0.4,
+    chuchu,
+    HUnit >= 1.2 && < 1.3
+  extensions: OverloadedStrings
+  ghc-options: -Wall
+
+Test-Suite background_and_multiple_scenarios
+  type: exitcode-stdio-1.0
+  main-is: background_and_multiple_scenarios.hs
   hs-source-dirs: tests
   build-depends:
     base >= 4 && < 5,
