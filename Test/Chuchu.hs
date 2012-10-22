@@ -127,7 +127,21 @@ chuchuMain cc runMIO
           $ runChuchu cc
       (Left e) -> error $ "Could not parse " ++ path ++ ": " ++ show e
 
+
+----------------------------------------------------------------------
+
+
 type Execution m a = ReaderT (Parser (m ())) m a
+
+
+-- | Print a 'D.Doc' describing what we're currently processing.
+putDoc :: MonadIO m => D.Doc -> Execution m ()
+putDoc = liftIO . D.putDoc . (D.<> D.linebreak)
+
+
+-- | Same as 'D.text' but using 'T.Text'.
+t2d :: T.Text -> D.Doc
+t2d = D.text . T.unpack
 
 
 processAbacate :: MonadIO m => Abacate -> Execution m Bool
@@ -144,9 +158,6 @@ processAbacate feature
     feCode <- processFeatureElements $ fFeatureElements feature
     return $ bCode && feCode
 
--- | Print a 'D.Doc' describing what we're currently processing.
-putDoc :: MonadIO m => D.Doc -> Execution m ()
-putDoc = liftIO . D.putDoc . (D.<> D.linebreak)
 
 -- | Creates a pretty description of the feature.
 describeAbacate :: Abacate -> D.Doc
@@ -154,13 +165,13 @@ describeAbacate feature =
   (if null (fTags feature) then id else (describeTags (fTags feature) D.<$>)) $
   D.white (t2d (fHeader feature))
 
+
 -- | Creates a vertical list of tags.
 describeTags :: Tags -> D.Doc
 describeTags = D.vsep . map (D.dullcyan . ("@" D.<>) . t2d)
 
--- | Same as 'D.text' but using 'T.Text'.
-t2d :: T.Text -> D.Doc
-t2d = D.text . T.unpack
+
+----------------------------------------------------------------------
 
 
 processFeatureElements :: MonadIO m => FeatureElements -> Execution m Bool
@@ -168,6 +179,7 @@ processFeatureElements featureElements
   = do
     codes <- mapM processFeatureElement featureElements
     return $ and codes
+
 
 processFeatureElement :: MonadIO m => FeatureElement -> Execution m Bool
 processFeatureElement (FESO _)
@@ -177,12 +189,17 @@ processFeatureElement (FES sc) =
   processBasicScenario (ScenarioKind $ scTags sc) $ scBasicScenario sc
 
 
+----------------------------------------------------------------------
+
+
 data BasicScenarioKind = BackgroundKind | ScenarioKind Tags
+
 
 processBasicScenario :: MonadIO m => BasicScenarioKind -> BasicScenario -> Execution m Bool
 processBasicScenario kind scenario = do
   putDoc $ describeBasicScenario kind scenario
   processSteps (bsSteps scenario)
+
 
 -- | Creates a pretty description of the basic scenario's header.
 describeBasicScenario :: BasicScenarioKind -> BasicScenario -> D.Doc
@@ -197,12 +214,15 @@ describeBasicScenario kind scenario =
           prettyTags (ScenarioKind tags) = (describeTags tags D.<$>)
 
 
+----------------------------------------------------------------------
+
 
 processSteps :: MonadIO m => Steps -> Execution m Bool
 processSteps steps
   = do
     codes <- mapM processStep steps
     return $ and codes
+
 
 processStep :: MonadIO m => Step -> Execution m Bool
 processStep step
@@ -225,7 +245,12 @@ processStep step
         lift m
         return True
 
+
+----------------------------------------------------------------------
+
+
 data StepResult = SuccessfulStep | UnknownStep
+
 
 -- | Pretty-prints a step that has already finished executing.
 describeStep :: StepResult -> Step -> D.Doc
@@ -237,9 +262,13 @@ describeStep result step =
       color UnknownStep    = D.yellow
 
 
+----------------------------------------------------------------------
+
+
 data Options
   = Options {file_ :: FilePath}
     deriving (Eq, Show, Typeable, Data)
+
 
 getPath :: IO FilePath
 getPath
