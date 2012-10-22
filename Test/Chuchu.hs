@@ -112,7 +112,7 @@ import Test.Chuchu.Parser
 -- | The main function for the test file.  It expects the @.feature@ file as the
 -- first parameter on the command line.  If you want to use it inside a library,
 -- consider using 'withArgs'.
-chuchuMain :: MonadIO m => Chuchu m -> (m () -> IO ()) -> IO ()
+chuchuMain :: (MonadIO m, Applicative m) => Chuchu m -> (m () -> IO ()) -> IO ()
 chuchuMain cc runMIO
   = do
     path <- getPath
