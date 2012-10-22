@@ -83,6 +83,7 @@ import Control.Monad
 import System.Environment
 import System.Exit
 import System.IO
+import qualified Data.IORef as I
 
 -- text
 import qualified Data.Text as T
@@ -109,67 +110,116 @@ import Language.Abacate hiding (StepKeyword (..))
 import Test.Chuchu.Types
 import Test.Chuchu.Parser
 
+
+----------------------------------------------------------------------
+
+
 -- | The main function for the test file.  It expects the @.feature@ file as the
 -- first parameter on the command line.  If you want to use it inside a library,
 -- consider using 'withArgs'.
-chuchuMain :: MonadIO m => Chuchu m -> (m () -> IO ()) -> IO ()
+chuchuMain :: (MonadIO m, Applicative m) => Chuchu m -> (m () -> IO ()) -> IO ()
 chuchuMain cc runMIO
   = do
     path <- getPath
     parsed <- parseFile path
     case parsed of
-      (Right abacate)
-        -> runMIO
-          $ runReaderT
-            (do
-              code <- processAbacate abacate
-              unless code $ liftIO exitFailure)
-          $ runChuchu cc
-      (Left e) -> error $ "Could not parse " ++ path ++ ": " ++ show e
-
-type CM m a = ReaderT (Parser (m ())) m a
+      Right abacate -> do
+        ret <- processAbacate cc runMIO abacate
+        unless ret exitFailure
+      Left e -> error $ "Could not parse " ++ path ++ ": " ++ show e
 
 
-processAbacate :: MonadIO m => Abacate -> CM m Bool
-processAbacate feature
-  = do
-    -- Print feature description.
-    putDoc $ describeAbacate feature
+----------------------------------------------------------------------
 
-    -- Execute features.
-    bCode
-      <- case fBackground feature of
-        Nothing -> return True
-        Just background -> processBasicScenario BackgroundKind background
-    feCode <- processFeatureElements $ fFeatureElements feature
-    return $ bCode && feCode
+
+-- | An execution plan for a scenario.  Currently just a simple
+-- record with a background (optional) and a scenario.
+data ExecutionPlan =
+  ExecutionPlan
+    { epBackground :: Maybe Background
+    , epScenario   :: FeatureElement
+    }
+  deriving (Show)
+
+
+-- | Creates an execution plan for a feature.
+createExecutionPlans :: Abacate -> [ExecutionPlan]
+createExecutionPlans feature =
+  ExecutionPlan (fBackground feature) `map` fFeatureElements feature
+
+
+----------------------------------------------------------------------
+
+
+-- | Monad used when executing a feature's scenario.  'ReaderT'
+-- is used to carry along the step parser.
+type Execution m a = ReaderT (Parser (m ())) m a
+
 
 -- | Print a 'D.Doc' describing what we're currently processing.
-putDoc :: MonadIO m => D.Doc -> CM m ()
+putDoc :: (MonadIO m, Applicative m) => D.Doc -> m ()
 putDoc = liftIO . D.putDoc . (D.<> D.linebreak)
 
--- | Creates a pretty description of the feature.
-describeAbacate :: Abacate -> D.Doc
-describeAbacate feature =
-  (if null (fTags feature) then id else (describeTags (fTags feature) D.<$>)) $
-  D.white (t2d (fHeader feature))
-
--- | Creates a vertical list of tags.
-describeTags :: Tags -> D.Doc
-describeTags = D.vsep . map (D.dullcyan . ("@" D.<>) . t2d)
 
 -- | Same as 'D.text' but using 'T.Text'.
 t2d :: T.Text -> D.Doc
 t2d = D.text . T.unpack
 
 
-processFeatureElements :: MonadIO m => FeatureElements -> CM m Bool
-processFeatureElements featureElements
-  = do
-    codes <- mapM processFeatureElement featureElements
-    return $ and codes
+-- | Run the 'Execution' monad.
+runExecution :: (MonadIO m, Applicative m) =>
+                Chuchu m -> (m () -> IO ()) -> Execution m () -> IO ()
+runExecution cc runMIO act = runMIO $ runReaderT act $ runChuchu cc
 
-processFeatureElement :: MonadIO m => FeatureElement -> CM m Bool
+
+----------------------------------------------------------------------
+
+
+-- | Process a whole Abacate file, that is, a whole feature.
+-- Runs each background+scenario combination on a different
+-- instance of the 'Execution' monad.
+processAbacate :: (MonadIO m, Applicative m) =>
+                  Chuchu m
+               -> (m () -> IO ())
+               -> Abacate
+               -> IO Bool
+processAbacate cc runMIO feature = do
+  -- Print feature description.
+  putDoc $ describeAbacate feature
+
+  -- Execute features.
+  let plans = createExecutionPlans feature
+  retVar <- liftIO $ I.newIORef True
+  let checkRet ret = unless ret $ liftIO $ I.writeIORef retVar False
+  mapM_ (runExecution cc runMIO . (>>= checkRet) . processExecutionPlan) plans
+  liftIO $ I.readIORef retVar
+
+
+-- | Process a single execution plan, a combination of
+-- background+scenario, inside the 'Execution' monad.
+processExecutionPlan :: (MonadIO m, Applicative m) => ExecutionPlan -> Execution m Bool
+processExecutionPlan (ExecutionPlan mbackground scenario) = do
+  putDoc D.empty -- empty line
+  (&&) <$> maybe (return True) (processBasicScenario BackgroundKind) mbackground
+       <*> processFeatureElement scenario
+
+
+-- | Creates a pretty description of the feature.
+describeAbacate :: Abacate -> D.Doc
+describeAbacate feature =
+  D.vsep $
+  describeTags (fTags feature) ++ [D.white $ t2d $ fHeader feature]
+
+
+-- | Creates a vertical list of tags.
+describeTags :: Tags -> [D.Doc]
+describeTags = map (D.dullcyan . ("@" D.<>) . t2d)
+
+
+----------------------------------------------------------------------
+
+
+processFeatureElement :: (MonadIO m, Applicative m) => FeatureElement -> Execution m Bool
 processFeatureElement (FESO _)
   = liftIO (hPutStrLn stderr "Scenario Outlines are not supported yet.")
     >> return False
@@ -179,10 +229,12 @@ processFeatureElement (FES sc) =
 
 data BasicScenarioKind = BackgroundKind | ScenarioKind Tags
 
-processBasicScenario :: MonadIO m => BasicScenarioKind -> BasicScenario -> CM m Bool
+
+processBasicScenario :: (MonadIO m, Applicative m) => BasicScenarioKind -> BasicScenario -> Execution m Bool
 processBasicScenario kind scenario = do
   putDoc $ describeBasicScenario kind scenario
   processSteps (bsSteps scenario)
+
 
 -- | Creates a pretty description of the basic scenario's header.
 describeBasicScenario :: BasicScenarioKind -> BasicScenario -> D.Doc
@@ -194,17 +246,20 @@ describeBasicScenario kind scenario =
           describeBasicScenarioKind (ScenarioKind _) = "Scenario:"
 
           prettyTags BackgroundKind      = id
-          prettyTags (ScenarioKind tags) = (describeTags tags D.<$>)
+          prettyTags (ScenarioKind tags) = D.vsep . (describeTags tags ++) . (:[])
 
 
+----------------------------------------------------------------------
 
-processSteps :: MonadIO m => Steps -> CM m Bool
+
+processSteps :: (MonadIO m, Applicative m) => Steps -> Execution m Bool
 processSteps steps
   = do
     codes <- mapM processStep steps
     return $ and codes
 
-processStep :: MonadIO m => Step -> CM m Bool
+
+processStep :: (MonadIO m, Applicative m) => Step -> Execution m Bool
 processStep step
   = do
     cc <- ask
@@ -225,7 +280,9 @@ processStep step
         lift m
         return True
 
+
 data StepResult = SuccessfulStep | UnknownStep
+
 
 -- | Pretty-prints a step that has already finished executing.
 describeStep :: StepResult -> Step -> D.Doc
@@ -237,9 +294,13 @@ describeStep result step =
       color UnknownStep    = D.yellow
 
 
+----------------------------------------------------------------------
+
+
 data Options
   = Options {file_ :: FilePath}
     deriving (Eq, Show, Typeable, Data)
+
 
 getPath :: IO FilePath
 getPath
