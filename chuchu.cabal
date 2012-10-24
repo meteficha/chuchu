@@ -29,6 +29,7 @@ source-repository head
   location: git://github.com/marcotmarcot/chuchu.git
 
 library
+  hs-source-dirs: src
   exposed-modules:
     Test.Chuchu,
     Test.Chuchu.Types,
