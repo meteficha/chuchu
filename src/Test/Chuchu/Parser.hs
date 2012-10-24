@@ -18,17 +18,14 @@ module Test.Chuchu.Parser
   , email
   ) where
 
--- base
 import Control.Applicative hiding ((<|>))
 import Control.Monad
-
--- parsec
 import Text.Parsec
+import qualified Data.Text as T
 
--- chuchu
 import Test.Chuchu.Types (ChuchuParser(..))
-import qualified Test.Chuchu.Parsec as P
 import Test.Chuchu.Email
+import qualified Test.Chuchu.Parsec as P
 
 -- | Parses a floating point number, with the same syntax as accepted by
 -- Haskell.
@@ -44,16 +41,16 @@ int :: ChuchuParser Integer
 int = ChuchuParser P.int
 
 -- | Parses a quoted string, with the same syntax as accepted by Haskell.
-text :: ChuchuParser String
-text = ChuchuParser P.stringLiteral
+text :: ChuchuParser T.Text
+text = T.pack <$> ChuchuParser P.stringLiteral
 
 -- | Parses anything until the string passed as parameter, and also the string.
-wildcard :: String -> ChuchuParser ()
-wildcard = ChuchuParser . void . manyTill anyChar . string
+wildcard :: T.Text -> ChuchuParser ()
+wildcard = ChuchuParser . void . manyTill anyChar . string . T.unpack
 
 -- | Parses a simplified e-mail address and return everything that was parsed as
--- a simple 'String'.  This is a very simplified parser for e-mail, which does
+-- a simple 'T.Text'.  This is a very simplified parser for e-mail, which does
 -- not follow RFC5322. Basically, it parses @TEXT\@TEXT@, where TEXT is
 -- @alphaNum \<|> oneOf \"!#$%&\'*+-\/=?^_\`{|}~.\"@.
-email :: ChuchuParser String
-email = ChuchuParser addrSpecSimple
+email :: ChuchuParser T.Text
+email = T.pack <$> ChuchuParser addrSpecSimple

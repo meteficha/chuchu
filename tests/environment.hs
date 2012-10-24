@@ -17,6 +17,9 @@ import Control.Applicative
 import Data.Maybe
 import System.Environment hiding (getEnv)
 
+-- text
+import qualified Data.Text as T
+
 -- unix
 import System.Posix.Env
 
@@ -31,21 +34,21 @@ defs
   = do
     Given "that I start the test" $ \() -> return ()
     When ("I set the " *> wildcard " as " *> text <* " into the environment")
-      $ \x -> setEnv "environment" x True
+      $ \x -> setEnv "environment" (T.unpack x) True
     Then ("the " *> wildcard " should have " *> text <* " on its content")
-      $ \n -> fromJust <$> getEnv "environment" >>= (@?= n)
+      $ \n -> fromJust <$> getEnv "environment" >>= (@?= T.unpack n)
     When
         ("I set the "
           *> wildcard " as e-mail "
           *> email
           <* " into the environment")
-      $ \x -> setEnv "environment" x True
+      $ \x -> setEnv "environment" (T.unpack x) True
     Then
         ("the "
           *> wildcard " should have e-mail "
           *> email
           <* " on its content")
-      $ \n -> fromJust <$> getEnv "environment" >>= (@?= n)
+      $ \n -> fromJust <$> getEnv "environment" >>= (@?= T.unpack n)
 
 main :: IO ()
 main = withArgs ["tests/data/environment.feature"] $ chuchuMain defs id
