@@ -9,7 +9,14 @@
 -- Portability :  non-portable (TypeSynonymInstances, FlexibleInstances)
 --
 -- This modules provides some utility parsers for creating step rules.
-module Test.Chuchu.Parser (number, int, text, wildcard, email) where
+module Test.Chuchu.Parser
+  ( ChuchuParser
+  , number
+  , int
+  , text
+  , wildcard
+  , email
+  ) where
 
 -- base
 import Control.Applicative hiding ((<|>))
