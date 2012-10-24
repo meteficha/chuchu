@@ -13,6 +13,7 @@ module
 
 -- base
 import Control.Applicative hiding ((<|>))
+import Control.Monad (MonadPlus)
 import Data.String
 
 -- parsec
@@ -23,8 +24,8 @@ import Text.Parsec.Text
 -- | @newtype@ for Parsec's 'Parser' used on this library.  The
 -- main reason for not using 'Parser' directly is to be able to
 -- define the 'IsString' instance.
-newtype ChuchuParser a
-  = ChuchuParser (Parser a) deriving (Functor, Applicative, Monad)
+newtype ChuchuParser a = ChuchuParser (Parser a)
+  deriving (Functor, Applicative, Alternative, Monad, MonadPlus)
 
 instance (a ~ ()) => IsString (ChuchuParser a) where
   fromString s = ChuchuParser (string s >> return ())
