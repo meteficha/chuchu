@@ -1,11 +1,11 @@
 name: chuchu
-version: 0.1.3
+version: 0.1.4
 cabal-version: >= 1.8
 build-type: Simple
 license: OtherLicense
 license-file: LICENSE
 copyright: 2012 Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
-author: Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
+author: Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>, Felipe Lessa <felipe.lessa@gmail.com>
 maintainer: Marco Túlio Pimenta Gontijo <marcotmarcot@gmail.com>
 stability: experimental
 homepage: http://github.com/marcotmarcot/chuchu
