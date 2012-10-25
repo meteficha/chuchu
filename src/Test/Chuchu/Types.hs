@@ -28,7 +28,7 @@ newtype ChuchuParser a = ChuchuParser (Parser a)
   deriving (Functor, Applicative, Alternative, Monad, MonadPlus)
 
 instance (a ~ ()) => IsString (ChuchuParser a) where
-  fromString s = ChuchuParser (string s >> return ())
+  fromString s = ChuchuParser (try (string s) >> return ())
 
 
 -- | The most common use case where the return value of the Monad is ignored.
