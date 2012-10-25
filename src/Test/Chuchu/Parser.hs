@@ -16,12 +16,14 @@ module Test.Chuchu.Parser
   , text
   , wildcard
   , email
+  , try
   ) where
 
 import Control.Applicative hiding ((<|>))
 import Control.Monad
-import Text.Parsec
+import Text.Parsec hiding (try)
 import qualified Data.Text as T
+import qualified Text.Parsec as Parsec
 
 import Test.Chuchu.Types (ChuchuParser(..))
 import Test.Chuchu.Email
@@ -54,3 +56,8 @@ wildcard = ChuchuParser . void . manyTill anyChar . string . T.unpack
 -- @alphaNum \<|> oneOf \"!#$%&\'*+-\/=?^_\`{|}~.\"@.
 email :: ChuchuParser T.Text
 email = T.pack <$> ChuchuParser addrSpecSimple
+
+
+-- | Same as Parsec's 'Parsec.try' but for 'ChuchuParser'.
+try :: ChuchuParser a -> ChuchuParser a
+try (ChuchuParser x) = ChuchuParser (Parsec.try x)
