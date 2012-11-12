@@ -20,7 +20,6 @@ module Test.Chuchu.Parser
   ) where
 
 import Control.Applicative hiding ((<|>))
-import Control.Monad
 import Text.Parsec hiding (try)
 import qualified Data.Text as T
 import qualified Text.Parsec as Parsec
@@ -29,26 +28,32 @@ import Test.Chuchu.Types (ChuchuParser(..))
 import Test.Chuchu.Email
 import qualified Test.Chuchu.Parsec as P
 
+
 -- | Parses a floating point number, with the same syntax as accepted by
 -- Haskell.
 number :: ChuchuParser Double
 number = ChuchuParser $ nofToDouble <$> P.natFloat
 
+
 nofToDouble :: Either Integer Double -> Double
 nofToDouble (Left i) = fromInteger i
 nofToDouble (Right d) = d
+
 
 -- | Parses an integer.
 int :: ChuchuParser Integer
 int = ChuchuParser P.int
 
+
 -- | Parses a quoted string, with the same syntax as accepted by Haskell.
 text :: ChuchuParser T.Text
 text = T.pack <$> ChuchuParser P.stringLiteral
 
+
 -- | Parses anything until the string passed as parameter, and also the string.
-wildcard :: T.Text -> ChuchuParser ()
-wildcard = ChuchuParser . void . manyTill anyChar . string . T.unpack
+wildcard :: T.Text -> ChuchuParser T.Text
+wildcard = fmap T.pack . ChuchuParser . manyTill anyChar . Parsec.try . string . T.unpack
+
 
 -- | Parses a simplified e-mail address and return everything that was parsed as
 -- a simple 'T.Text'.  This is a very simplified parser for e-mail, which does
