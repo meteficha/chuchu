@@ -80,6 +80,7 @@ module
 -- base
 import Control.Applicative
 import Control.Monad
+import Data.Either (partitionEithers)
 import System.Environment
 import System.Exit
 import System.IO
@@ -114,19 +115,23 @@ import Test.Chuchu.Parser
 ----------------------------------------------------------------------
 
 
--- | The main function for the test file.  It expects the @.feature@ file as the
--- first parameter on the command line.  If you want to use it inside a library,
--- consider using 'withArgs'.
+-- | The main function for the test file. It expects one or more
+-- @.feature@ file as parameters on the command line. If you want to
+-- use it inside a library, consider using 'withArgs'.
 chuchuMain :: (MonadIO m, Applicative m) => Chuchu m -> (m () -> IO ()) -> IO ()
-chuchuMain cc runMIO
-  = do
-    path <- getPath
-    parsed <- parseFile path
-    case parsed of
-      Right abacate -> do
-        ret <- processAbacate cc runMIO abacate
-        unless ret exitFailure
-      Left e -> error $ "Could not parse " ++ path ++ ": " ++ show e
+chuchuMain cc runMIO = do
+  listOfPaths <- getPaths
+  parsedFiles <- mapM parseFile listOfPaths
+  let result = partitionEithers parsedFiles
+  case result of
+    -- no error in parsing, execute all files
+    ([], filesToExecute) -> do
+      rets <- mapM (processAbacate cc runMIO) filesToExecute
+      unless (and rets) exitFailure
+    -- there were errors, print them and execute nothing
+    (filesWithError, _)  -> do
+      putStrLn "Could not parse the following files: "
+      mapM_ (putStrLn . flip (++) "\n" . show) filesWithError
 
 
 ----------------------------------------------------------------------
@@ -298,17 +303,14 @@ describeStep result step =
 
 
 data Options
-  = Options {file_ :: FilePath}
+  = Options {file_ :: [FilePath]}
     deriving (Eq, Show, Typeable, Data)
 
 
-getPath :: IO FilePath
-getPath
-  = do
-    progName <- getProgName
-    file_
-      <$> cmdArgs
-        (Options (def &= typ "PATH" &= argPos 0)
-          &= program progName
-          &= details
-            ["Run test scenarios specified on the abacate file at PATH."])
+-- Gets the feature files as arguments from the command-line.
+getPaths :: IO [FilePath]
+getPaths = do
+  progName <- getProgName
+  file_ <$> cmdArgs (Options (def &= typ "PATH" &= args)
+                     &= program progName
+                     &= details ["Run one or more abacate files."])
