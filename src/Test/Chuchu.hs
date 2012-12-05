@@ -119,14 +119,14 @@ import Test.Chuchu.Parser
 -- @.feature@ file as parameters on the command line. If you want to
 -- use it inside a library, consider using 'withArgs'.
 chuchuMain :: (MonadIO m, Applicative m) => Chuchu m -> (m () -> IO ()) -> IO ()
-chuchuMain cc runMIO = do
+chuchuMain stepDefinitions runMIO = do
   listOfPaths <- getPaths
   parsedFiles <- mapM parseFile listOfPaths
   let result = partitionEithers parsedFiles
   case result of
     -- no error in parsing, execute all files
     ([], filesToExecute) -> do
-      rets <- mapM (processAbacate cc runMIO) filesToExecute
+      rets <- mapM (processAbacate stepDefinitions runMIO) filesToExecute
       unless (and rets) exitFailure
     -- there were errors, print them and execute nothing
     (filesWithError, _)  -> do
@@ -174,7 +174,7 @@ t2d = D.text . T.unpack
 -- | Run the 'Execution' monad.
 runExecution :: (MonadIO m, Applicative m) =>
                 Chuchu m -> (m () -> IO ()) -> Execution m () -> IO ()
-runExecution cc runMIO act = runMIO $ runReaderT act $ runChuchu cc
+runExecution stepDefinitions runMIO act = runMIO $ runReaderT act $ runChuchu stepDefinitions
 
 
 ----------------------------------------------------------------------
@@ -188,7 +188,7 @@ processAbacate :: (MonadIO m, Applicative m) =>
                -> (m () -> IO ())
                -> Abacate
                -> IO Bool
-processAbacate cc runMIO feature = do
+processAbacate stepDefinitions runMIO feature = do
   -- Print feature description.
   putDoc $ describeAbacate feature
 
@@ -196,7 +196,7 @@ processAbacate cc runMIO feature = do
   let plans = createExecutionPlans feature
   retVar <- liftIO $ I.newIORef True
   let checkRet ret = unless ret $ liftIO $ I.writeIORef retVar False
-  mapM_ (runExecution cc runMIO . (>>= checkRet) . processExecutionPlan) plans
+  mapM_ (runExecution stepDefinitions runMIO . (>>= checkRet) . processExecutionPlan) plans
   liftIO $ I.readIORef retVar
 
 
