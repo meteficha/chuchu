@@ -86,6 +86,12 @@ import System.Exit
 import System.IO
 import qualified Data.IORef as I
 
+-- monad-control
+import Control.Monad.Trans.Control (MonadBaseControl)
+
+-- lifted-base
+import qualified Control.Exception.Lifted as E
+
 -- text
 import qualified Data.Text as T
 
@@ -96,7 +102,6 @@ import Control.Monad.Trans.Reader
 
 -- parsec
 import Text.Parsec
-import Text.Parsec.Text
 
 -- cmdargs
 import System.Console.CmdArgs
@@ -118,7 +123,8 @@ import Test.Chuchu.Parser
 -- | The main function for the test file. It expects one or more
 -- @.feature@ file as parameters on the command line. If you want to
 -- use it inside a library, consider using 'withArgs'.
-chuchuMain :: (MonadIO m, Applicative m) => Chuchu m -> (m () -> IO ()) -> IO ()
+chuchuMain :: (MonadBaseControl IO m, MonadIO m, Applicative m) =>
+              Chuchu m -> (m () -> IO ()) -> IO ()
 chuchuMain stepDefinitions runMIO = do
   listOfPaths <- getPaths
   parsedFiles <- mapM parseFile listOfPaths
@@ -126,12 +132,14 @@ chuchuMain stepDefinitions runMIO = do
   case result of
     -- no error in parsing, execute all files
     ([], filesToExecute) -> do
-      rets <- mapM (processAbacate stepDefinitions runMIO) filesToExecute
-      unless (and rets) exitFailure
+      rets <- concat <$> mapM (processAbacate stepDefinitions runMIO) filesToExecute
+      let n = length $ filter not rets
+      unless (n == 0) $ exitWith (ExitFailure (min 255 n)) -- the size of a Unix error code is 1 byte
     -- there were errors, print them and execute nothing
     (filesWithError, _)  -> do
       putStrLn "Could not parse the following files: "
       mapM_ (putStrLn . flip (++) "\n" . show) filesWithError
+      exitFailure
 
 
 ----------------------------------------------------------------------
@@ -158,7 +166,7 @@ createExecutionPlans feature =
 
 -- | Monad used when executing a feature's scenario.  'ReaderT'
 -- is used to carry along the step parser.
-type Execution m a = ReaderT (Parser (m ())) m a
+type Execution m a = ReaderT (Step -> Either ParseError (m ())) m a
 
 
 -- | Print a 'D.Doc' describing what we're currently processing.
@@ -174,7 +182,8 @@ t2d = D.text . T.unpack
 -- | Run the 'Execution' monad.
 runExecution :: (MonadIO m, Applicative m) =>
                 Chuchu m -> (m () -> IO ()) -> Execution m () -> IO ()
-runExecution stepDefinitions runMIO act = runMIO $ runReaderT act $ runChuchu stepDefinitions
+runExecution stepDefinitions runMIO act = runMIO $ runReaderT act parseStep
+  where parseStep = parse (runChuchu stepDefinitions) "Step definitions" . stBody
 
 
 ----------------------------------------------------------------------
@@ -183,26 +192,27 @@ runExecution stepDefinitions runMIO act = runMIO $ runReaderT act $ runChuchu st
 -- | Process a whole Abacate file, that is, a whole feature.
 -- Runs each background+scenario combination on a different
 -- instance of the 'Execution' monad.
-processAbacate :: (MonadIO m, Applicative m) =>
+processAbacate :: (MonadBaseControl IO m, MonadIO m, Applicative m) =>
                   Chuchu m
                -> (m () -> IO ())
                -> Abacate
-               -> IO Bool
+               -> IO [Bool]
 processAbacate stepDefinitions runMIO feature = do
   -- Print feature description.
   putDoc $ describeAbacate feature
 
   -- Execute features.
   let plans = createExecutionPlans feature
-  retVar <- liftIO $ I.newIORef True
-  let checkRet ret = unless ret $ liftIO $ I.writeIORef retVar False
-  mapM_ (runExecution stepDefinitions runMIO . (>>= checkRet) . processExecutionPlan) plans
-  liftIO $ I.readIORef retVar
+  retVar <- liftIO $ I.newIORef []
+  let addRet ret = liftIO $ I.modifyIORef retVar (ret:)
+  mapM_ (runExecution stepDefinitions runMIO . (>>= addRet) . processExecutionPlan) plans
+  reverse <$> liftIO (I.readIORef retVar)
 
 
 -- | Process a single execution plan, a combination of
 -- background+scenario, inside the 'Execution' monad.
-processExecutionPlan :: (MonadIO m, Applicative m) => ExecutionPlan -> Execution m Bool
+processExecutionPlan :: (MonadBaseControl IO m, MonadIO m, Applicative m) =>
+                        ExecutionPlan -> Execution m Bool
 processExecutionPlan (ExecutionPlan mbackground scenario) = do
   putDoc D.empty -- empty line
   (&&) <$> maybe (return True) (processBasicScenario BackgroundKind) mbackground
@@ -224,7 +234,8 @@ describeTags = map (D.dullcyan . ("@" D.<>) . t2d)
 ----------------------------------------------------------------------
 
 
-processFeatureElement :: (MonadIO m, Applicative m) => FeatureElement -> Execution m Bool
+processFeatureElement :: (MonadBaseControl IO m, MonadIO m, Applicative m) =>
+                         FeatureElement -> Execution m Bool
 processFeatureElement (FESO _)
   = liftIO (hPutStrLn stderr "Scenario Outlines are not supported yet.")
     >> return False
@@ -235,7 +246,8 @@ processFeatureElement (FES sc) =
 data BasicScenarioKind = BackgroundKind | ScenarioKind Tags
 
 
-processBasicScenario :: (MonadIO m, Applicative m) => BasicScenarioKind -> BasicScenario -> Execution m Bool
+processBasicScenario :: (MonadBaseControl IO m, MonadIO m, Applicative m) =>
+                        BasicScenarioKind -> BasicScenario -> Execution m Bool
 processBasicScenario kind scenario = do
   putDoc $ describeBasicScenario kind scenario
   processSteps (bsSteps scenario)
@@ -257,36 +269,40 @@ describeBasicScenario kind scenario =
 ----------------------------------------------------------------------
 
 
-processSteps :: (MonadIO m, Applicative m) => Steps -> Execution m Bool
-processSteps steps
-  = do
-    codes <- mapM processStep steps
-    return $ and codes
+processSteps :: (MonadBaseControl IO m, MonadIO m, Applicative m) => Steps -> Execution m Bool
+processSteps steps = mapShortCircuitM processStep steps
 
 
-processStep :: (MonadIO m, Applicative m) => Step -> Execution m Bool
-processStep step
-  = do
-    cc <- ask
-    case parse cc "processStep" $ stBody step of
-      Left e
-        -> do
-          putDoc $ describeStep UnknownStep step
-          liftIO
-            $ hPutStrLn stderr
-            $ "The step "
-              ++ show (stBody step)
-              ++ " doesn't match any step definitions I know."
-              ++ show e
-          return False
-      Right m -> do
-        -- TODO: Catch failures and treat them nicely.
-        putDoc $ describeStep SuccessfulStep step
-        lift m
-        return True
+mapShortCircuitM :: (Monad m) => (a -> m Bool) -> [a] -> m Bool
+mapShortCircuitM _ []     = return True
+mapShortCircuitM f (x:xs) = do
+  ret <- f x
+  if ret then mapShortCircuitM f xs
+         else return False
 
 
-data StepResult = SuccessfulStep | UnknownStep
+-- | Executes the parser of each step and prints the result on the
+-- screen.
+processStep :: (MonadBaseControl IO m, MonadIO m, Applicative m) => Step -> Execution m Bool
+processStep step = do
+  parseStep <- ask
+  case parseStep step of
+    Left e -> do
+      putDoc $ describeStep UnknownStep step
+      liftIO $ hPutStrLn stderr $ "The step "
+                                  ++ show (stBody step)
+                                  ++ " doesn't match any step definitions I know."
+                                  ++ show e
+      return False
+    Right m -> do
+      r <- E.catches (lift m >> return SuccessfulStep)
+             [ E.Handler $ \(e :: E.AsyncException) -> E.throw (e :: E.AsyncException)
+             , E.Handler $ \(_ :: E.SomeException)  -> return FailedStep ]
+      putDoc (describeStep r step)
+      return (r == SuccessfulStep)
+
+
+data StepResult = SuccessfulStep | FailedStep | UnknownStep deriving (Eq)
 
 
 -- | Pretty-prints a step that has already finished executing.
@@ -296,6 +312,7 @@ describeStep result step =
   color result (D.text (show $ stStepKeyword step) D.<+> t2d (stBody step))
     where
       color SuccessfulStep = D.green
+      color FailedStep     = D.red
       color UnknownStep    = D.yellow
 
 
