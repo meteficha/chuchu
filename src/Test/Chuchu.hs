@@ -166,7 +166,12 @@ createExecutionPlans feature =
 
 -- | Monad used when executing a feature's scenario.  'ReaderT'
 -- is used to carry along the step parser.
-type Execution m a = ReaderT (Step -> Either ParseError (m ())) m a
+type Execution m a = ReaderT (ParseStep m) m a
+
+
+-- | A function that parses a step and, if successful, returns
+-- the corresponding action to be executed.
+type ParseStep m = Step -> Either ParseError (m ())
 
 
 -- | Print a 'D.Doc' describing what we're currently processing.
