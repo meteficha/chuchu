@@ -13,12 +13,10 @@
 -- <http://porg.es/blog/email-address-validation-simpler-faster-more-correct>.
 module Test.Chuchu.Email (addrSpecSimple) where
 
--- base
-import Control.Applicative hiding ((<|>), many, optional)
+import Control.Applicative ((<$>), (<|>))
+import Text.Parsec (oneOf, many1, string, alphaNum)
+import Text.Parsec.Text (Parser)
 
--- parsec
-import Text.Parsec
-import Text.Parsec.Text
 
 -- | Parses a simplified e-mail address and return everything that was parsed as
 -- a simple 'String'.

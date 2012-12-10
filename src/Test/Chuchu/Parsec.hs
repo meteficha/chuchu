@@ -37,12 +37,12 @@
 
 module Test.Chuchu.Parsec (stringLiteral, natFloat, int) where
 
--- base
-import Data.Char
-
--- parsec
+import Control.Applicative ((<|>), many)
+import Data.Char (digitToInt)
 import Text.Parsec
-import Text.Parsec.Text
+       ( (<?>), between, choice, digit, char, hexDigit, many1
+       , octDigit, oneOf, option, satisfy, space, string, try, upper )
+import Text.Parsec.Text (Parser)
 
 {-# ANN module ("HLint: ignore" :: String) #-}
 -- | 'lexeme' removed.

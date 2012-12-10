@@ -11,24 +11,21 @@ module
   (ChuchuParser (..), Chuchu, ChuchuM (Given, When, Then, And, But), runChuchu)
   where
 
--- base
-import Control.Applicative hiding ((<|>))
+import Control.Applicative (Applicative((<*)), Alternative((<|>)), (<$>))
 import Control.Monad (MonadPlus)
-import Data.String
-
--- parsec
-import Text.Parsec
-import Text.Parsec.Text
+import Data.String (IsString(..))
+import qualified Text.Parsec as P
+import qualified Text.Parsec.Text as P (Parser)
 
 
 -- | @newtype@ for Parsec's 'Parser' used on this library.  The
 -- main reason for not using 'Parser' directly is to be able to
 -- define the 'IsString' instance.
-newtype ChuchuParser a = ChuchuParser (Parser a)
+newtype ChuchuParser a = ChuchuParser (P.Parser a)
   deriving (Functor, Applicative, Alternative, Monad, MonadPlus)
 
 instance (a ~ ()) => IsString (ChuchuParser a) where
-  fromString s = ChuchuParser (try (string s) >> return ())
+  fromString s = ChuchuParser (P.try (P.string s) >> return ())
 
 
 -- | The most common use case where the return value of the Monad is ignored.
@@ -54,8 +51,8 @@ instance Monad (ChuchuM m) where
 -- | Converts the Monad into a single 'Parser' that executes the specified
 -- action if the parser is executed correctly.  It includes an 'eof' on the
 -- parser of each step to avoid it from accepting prefixes of the desired rule.
-runChuchu :: ChuchuM m a -> Parser (m ())
-runChuchu Nil = unexpected "Unknown step"
+runChuchu :: ChuchuM m a -> P.Parser (m ())
+runChuchu Nil = P.unexpected "Unknown step"
 runChuchu (Cons cc1 cc2) = runChuchu cc1 <|> runChuchu cc2
 runChuchu (Given p f) = apply p f
 runChuchu (When p f) = apply p f
@@ -63,5 +60,5 @@ runChuchu (Then p f) = apply p f
 runChuchu (And p f) = apply p f
 runChuchu (But p f) = apply p f
 
-apply :: ChuchuParser a -> (a -> m ()) -> Parser (m ())
-apply (ChuchuParser p) f = try $ f <$> p <* eof
+apply :: ChuchuParser a -> (a -> m ()) -> P.Parser (m ())
+apply (ChuchuParser p) f = P.try $ f <$> p <* P.eof

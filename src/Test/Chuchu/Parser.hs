@@ -19,20 +19,19 @@ module Test.Chuchu.Parser
   , try
   ) where
 
-import Control.Applicative hiding ((<|>))
-import Text.Parsec hiding (try)
+import Control.Applicative ((<$>))
 import qualified Data.Text as T
-import qualified Text.Parsec as Parsec
+import qualified Text.Parsec as P
 
 import Test.Chuchu.Types (ChuchuParser(..))
 import Test.Chuchu.Email
-import qualified Test.Chuchu.Parsec as P
+import qualified Test.Chuchu.Parsec as P'
 
 
 -- | Parses a floating point number, with the same syntax as accepted by
 -- Haskell.
 number :: ChuchuParser Double
-number = ChuchuParser $ nofToDouble <$> P.natFloat
+number = ChuchuParser $ nofToDouble <$> P'.natFloat
 
 
 nofToDouble :: Either Integer Double -> Double
@@ -42,17 +41,17 @@ nofToDouble (Right d) = d
 
 -- | Parses an integer.
 int :: ChuchuParser Integer
-int = ChuchuParser P.int
+int = ChuchuParser P'.int
 
 
 -- | Parses a quoted string, with the same syntax as accepted by Haskell.
 text :: ChuchuParser T.Text
-text = T.pack <$> ChuchuParser P.stringLiteral
+text = T.pack <$> ChuchuParser P'.stringLiteral
 
 
 -- | Parses anything until the string passed as parameter, and also the string.
 wildcard :: T.Text -> ChuchuParser T.Text
-wildcard = fmap T.pack . ChuchuParser . manyTill anyChar . Parsec.try . string . T.unpack
+wildcard = fmap T.pack . ChuchuParser . P.manyTill P.anyChar . P.try . P.string . T.unpack
 
 
 -- | Parses a simplified e-mail address and return everything that was parsed as
@@ -65,4 +64,4 @@ email = T.pack <$> ChuchuParser addrSpecSimple
 
 -- | Same as Parsec's 'Parsec.try' but for 'ChuchuParser'.
 try :: ChuchuParser a -> ChuchuParser a
-try (ChuchuParser x) = ChuchuParser (Parsec.try x)
+try (ChuchuParser x) = ChuchuParser (P.try x)

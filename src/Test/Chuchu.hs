@@ -77,42 +77,24 @@ module
   (chuchuMain, module Test.Chuchu.Types, module Test.Chuchu.Parser)
   where
 
--- base
-import Control.Applicative
-import Control.Monad
-import Data.Either (partitionEithers)
-import System.Environment
-import System.Exit
-import System.IO
-import qualified Data.IORef as I
-
--- monad-control
+import Control.Applicative ((<$>), Applicative((<*>)))
+import Control.Monad (unless)
+import Control.Monad.IO.Class (MonadIO(liftIO))
+import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Control (MonadBaseControl)
-
--- lifted-base
-import qualified Control.Exception.Lifted as E
-
--- text
-import qualified Data.Text as T
-
--- transformers
-import Control.Monad.IO.Class
-import Control.Monad.Trans.Class
-import Control.Monad.Trans.Reader
-
--- parsec
-import Text.Parsec
-
--- cmdargs
+import Control.Monad.Trans.Reader (ReaderT(..), ask)
+import Data.Either (partitionEithers)
+import Language.Abacate hiding (StepKeyword (..))
 import System.Console.CmdArgs
-
--- ansi-wl-pprint
+import System.Environment (getProgName)
+import System.Exit (exitFailure, exitWith, ExitCode(ExitFailure))
+import System.IO (hPutStrLn, stderr)
+import qualified Control.Exception.Lifted as E
+import qualified Data.IORef as I
+import qualified Data.Text as T
+import qualified Text.Parsec as P
 import qualified Text.PrettyPrint.ANSI.Leijen as D
 
--- abacate
-import Language.Abacate hiding (StepKeyword (..))
-
--- chuchu
 import Test.Chuchu.Types
 import Test.Chuchu.Parser
 
@@ -171,7 +153,7 @@ type Execution m a = ReaderT (ParseStep m) m a
 
 -- | A function that parses a step and, if successful, returns
 -- the corresponding action to be executed.
-type ParseStep m = Step -> Either ParseError (m ())
+type ParseStep m = Step -> Either P.ParseError (m ())
 
 
 -- | Print a 'D.Doc' describing what we're currently processing.
@@ -188,7 +170,7 @@ t2d = D.text . T.unpack
 runExecution :: (MonadIO m, Applicative m) =>
                 Chuchu m -> (m () -> IO ()) -> Execution m () -> IO ()
 runExecution stepDefinitions runMIO act = runMIO $ runReaderT act parseStep
-  where parseStep = parse (runChuchu stepDefinitions) "Step definitions" . stBody
+  where parseStep = P.parse (runChuchu stepDefinitions) "Step definitions" . stBody
 
 
 ----------------------------------------------------------------------
