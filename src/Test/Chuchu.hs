@@ -88,15 +88,13 @@ import Language.Abacate hiding (StepKeyword (..))
 import System.Console.CmdArgs
 import System.Environment (getProgName)
 import System.Exit (exitFailure, exitWith, ExitCode(ExitFailure))
-import System.IO (hPutStrLn, stderr)
 import qualified Control.Exception.Lifted as E
 import qualified Data.IORef as I
-import qualified Data.Text as T
 import qualified Text.Parsec as P
-import qualified Text.PrettyPrint.ANSI.Leijen as D
 
 import Test.Chuchu.Types
 import Test.Chuchu.Parser
+import Test.Chuchu.OutputPrinter
 
 
 ----------------------------------------------------------------------
@@ -119,8 +117,8 @@ chuchuMain stepDefinitions runMIO = do
       unless (n == 0) $ exitWith (ExitFailure (min 255 n)) -- the size of a Unix error code is 1 byte
     -- there were errors, print them and execute nothing
     (filesWithError, _)  -> do
-      putStrLn "Could not parse the following files: "
-      mapM_ (putStrLn . flip (++) "\n" . show) filesWithError
+      warn "Could not parse the following files: "
+      mapM_ (warn . flip (++) "\n" . show) filesWithError
       exitFailure
 
 
@@ -154,16 +152,6 @@ type Execution m a = ReaderT (ParseStep m) m a
 -- | A function that parses a step and, if successful, returns
 -- the corresponding action to be executed.
 type ParseStep m = Step -> Either P.ParseError (m ())
-
-
--- | Print a 'D.Doc' describing what we're currently processing.
-putDoc :: (MonadIO m, Applicative m) => D.Doc -> m ()
-putDoc = liftIO . D.putDoc . (D.<> D.linebreak)
-
-
--- | Same as 'D.text' but using 'T.Text'.
-t2d :: T.Text -> D.Doc
-t2d = D.text . T.unpack
 
 
 -- | Run the 'Execution' monad.
@@ -201,21 +189,9 @@ processAbacate stepDefinitions runMIO feature = do
 processExecutionPlan :: (MonadBaseControl IO m, MonadIO m, Applicative m) =>
                         ExecutionPlan -> Execution m Bool
 processExecutionPlan (ExecutionPlan mbackground scenario) = do
-  putDoc D.empty -- empty line
+  liftIO $ putStrLn "" -- empty line (TODO: move into OutputPrinter somehow)
   (&&) <$> maybe (return True) (processBasicScenario BackgroundKind) mbackground
        <*> processFeatureElement scenario
-
-
--- | Creates a pretty description of the feature.
-describeAbacate :: Abacate -> D.Doc
-describeAbacate feature =
-  D.vsep $
-  describeTags (fTags feature) ++ [D.white $ t2d $ fHeader feature]
-
-
--- | Creates a vertical list of tags.
-describeTags :: Tags -> [D.Doc]
-describeTags = map (D.dullcyan . ("@" D.<>) . t2d)
 
 
 ----------------------------------------------------------------------
@@ -224,13 +200,9 @@ describeTags = map (D.dullcyan . ("@" D.<>) . t2d)
 processFeatureElement :: (MonadBaseControl IO m, MonadIO m, Applicative m) =>
                          FeatureElement -> Execution m Bool
 processFeatureElement (FESO _)
-  = liftIO (hPutStrLn stderr "Scenario Outlines are not supported yet.")
-    >> return False
+  = warn "Scenario Outlines are not supported yet." >> return False
 processFeatureElement (FES sc) =
   processBasicScenario (ScenarioKind $ scTags sc) $ scBasicScenario sc
-
-
-data BasicScenarioKind = BackgroundKind | ScenarioKind Tags
 
 
 processBasicScenario :: (MonadBaseControl IO m, MonadIO m, Applicative m) =>
@@ -238,19 +210,6 @@ processBasicScenario :: (MonadBaseControl IO m, MonadIO m, Applicative m) =>
 processBasicScenario kind scenario = do
   putDoc $ describeBasicScenario kind scenario
   processSteps (bsSteps scenario)
-
-
--- | Creates a pretty description of the basic scenario's header.
-describeBasicScenario :: BasicScenarioKind -> BasicScenario -> D.Doc
-describeBasicScenario kind scenario =
-  D.indent 2 $
-  prettyTags kind $
-  D.bold ((describeBasicScenarioKind kind) D.<+> t2d (bsName scenario))
-    where describeBasicScenarioKind BackgroundKind   = "Background:"
-          describeBasicScenarioKind (ScenarioKind _) = "Scenario:"
-
-          prettyTags BackgroundKind      = id
-          prettyTags (ScenarioKind tags) = D.vsep . (describeTags tags ++) . (:[])
 
 
 ----------------------------------------------------------------------
@@ -276,10 +235,10 @@ processStep step = do
   case parseStep step of
     Left e -> do
       putDoc $ describeStep UnknownStep step
-      liftIO $ hPutStrLn stderr $ "The step "
-                                  ++ show (stBody step)
-                                  ++ " doesn't match any step definitions I know."
-                                  ++ show e
+      liftIO $ warn $ concat [ "The step "
+                             , show (stBody step)
+                             , " doesn't match any step definitions I know."
+                             , show e ]
       return False
     Right m -> do
       r <- E.catches (lift m >> return SuccessfulStep)
@@ -287,20 +246,6 @@ processStep step = do
              , E.Handler $ \(_ :: E.SomeException)  -> return FailedStep ]
       putDoc (describeStep r step)
       return (r == SuccessfulStep)
-
-
-data StepResult = SuccessfulStep | FailedStep | UnknownStep deriving (Eq)
-
-
--- | Pretty-prints a step that has already finished executing.
-describeStep :: StepResult -> Step -> D.Doc
-describeStep result step =
-  D.indent 4 $
-  color result (D.text (show $ stStepKeyword step) D.<+> t2d (stBody step))
-    where
-      color SuccessfulStep = D.green
-      color FailedStep     = D.red
-      color UnknownStep    = D.yellow
 
 
 ----------------------------------------------------------------------

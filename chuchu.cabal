@@ -39,7 +39,8 @@ library
     Test.Chuchu.Parser
   other-modules:
     Test.Chuchu.Parsec,
-    Test.Chuchu.Email
+    Test.Chuchu.Email,
+    Test.Chuchu.OutputPrinter
   build-depends:
     base               >= 4    && < 5,
     text               >= 0.11 && < 0.12,
