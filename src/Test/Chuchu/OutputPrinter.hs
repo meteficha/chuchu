@@ -65,10 +65,17 @@ data BasicScenarioKind = BackgroundKind | ScenarioKind Tags
 describeStep :: StepResult -> Step -> D.Doc
 describeStep result step =
   D.indent 4 $
-  color result (D.text (show $ stStepKeyword step) D.<+> t2d (stBody step))
+  D.vsep $ [color result (D.text (show $ stStepKeyword step) D.<+> t2d (stBody step))]
+        ++ map D.text (errMsg result)
     where
-      color SuccessfulStep = D.green
-      color FailedStep     = D.red
-      color UnknownStep    = D.yellow
+      color SuccessfulStep  = D.green
+      color (FailedStep _)  = D.red
+      color (UnknownStep _) = D.yellow
+      errMsg SuccessfulStep  = []
+      errMsg (FailedStep m)  = [m]
+      errMsg (UnknownStep m) = [m]
 
-data StepResult = SuccessfulStep | FailedStep | UnknownStep deriving (Eq)
+data StepResult = SuccessfulStep
+                | FailedStep String
+                | UnknownStep String
+                  deriving (Eq)
