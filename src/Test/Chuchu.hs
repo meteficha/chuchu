@@ -234,16 +234,17 @@ processStep step = do
   parseStep <- ask
   case parseStep step of
     Left e -> do
-      putDoc $ describeStep UnknownStep step
-      liftIO $ warn $ concat [ "The step "
-                             , show (stBody step)
-                             , " doesn't match any step definitions I know."
-                             , show e ]
+      let msg = concat [ "The step "
+                       , show (stBody step)
+                       , " doesn't match any step definitions I know."
+                       , show e ]
+      putDoc $ describeStep (UnknownStep msg) step
       return False
     Right m -> do
       r <- E.catches (lift m >> return SuccessfulStep)
              [ E.Handler $ \(e :: E.AsyncException) -> E.throw (e :: E.AsyncException)
-             , E.Handler $ \(_ :: E.SomeException)  -> return FailedStep ]
+             , E.Handler $ \(e :: E.SomeException) ->
+                 return (FailedStep $ "Caught exception: " ++ show e) ]
       putDoc (describeStep r step)
       return (r == SuccessfulStep)
 
