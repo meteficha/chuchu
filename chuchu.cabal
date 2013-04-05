@@ -144,3 +144,15 @@ Test-Suite should_fail
     HUnit >= 1.2 && < 1.3
   extensions: OverloadedStrings
   ghc-options: -Wall
+
+Test-Suite background_fail
+  type: exitcode-stdio-1.0
+  main-is: background_fail.hs
+  hs-source-dirs: tests
+  build-depends:
+    base >= 4 && < 5,
+    transformers >= 0.3 && < 0.4,
+    chuchu,
+    HUnit >= 1.2 && < 1.3
+  extensions: OverloadedStrings
+  ghc-options: -Wall
