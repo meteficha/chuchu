@@ -77,7 +77,7 @@ module
   (chuchuMain, module Test.Chuchu.Types, module Test.Chuchu.Parser)
   where
 
-import Control.Applicative ((<$>), Applicative((<*>)))
+import Control.Applicative ((<$>))
 import Control.Monad (unless)
 import Control.Monad.IO.Class (MonadIO(liftIO))
 import Control.Monad.Trans.Class (lift)
@@ -190,8 +190,10 @@ processExecutionPlan :: (MonadBaseControl IO m, MonadIO m, Applicative m) =>
                         ExecutionPlan -> Execution m Bool
 processExecutionPlan (ExecutionPlan mbackground scenario) = do
   liftIO $ putStrLn "" -- empty line (TODO: move into OutputPrinter somehow)
-  (&&) <$> maybe (return True) (processBasicScenario BackgroundKind) mbackground
-       <*> processFeatureElement scenario
+  mapShortCircuitM id
+    [ maybe (return True) (processBasicScenario BackgroundKind) mbackground
+    , processFeatureElement scenario
+    ]
 
 
 ----------------------------------------------------------------------
